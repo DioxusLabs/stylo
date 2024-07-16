@@ -193,8 +193,8 @@ impl Size {
     #[cfg(feature = "servo")]
     pub fn to_used_value(&self, percentage_basis: Au) -> Option<Au> {
         match *self {
-            GenericSize::Auto => None,
             GenericSize::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
+            _ => None,
         }
     }
 
@@ -202,14 +202,14 @@ impl Size {
     #[inline]
     pub fn is_definitely_zero(&self) -> bool {
         match *self {
-            Self::Auto => false,
-            Self::LengthPercentage(ref lp) => lp.is_definitely_zero(),
-            #[cfg(feature = "gecko")]
+            Self::Auto |
             Self::MinContent |
             Self::MaxContent |
             Self::FitContent |
-            Self::MozAvailable |
             Self::FitContentFunction(_) => false,
+            Self::LengthPercentage(ref lp) => lp.is_definitely_zero(),
+            #[cfg(feature = "gecko")]
+            Self::MozAvailable => false
         }
     }
 }

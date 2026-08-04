@@ -5,7 +5,6 @@
 //! https://html.spec.whatwg.org/multipage/#source-size-list
 
 use crate::device::Device;
-use crate::dom::AttributeTracker;
 use crate::parser::{Parse, ParserContext};
 use crate::queries::{FeatureType, QueryCondition};
 use crate::stylesheets::CustomMediaEvaluator;
@@ -15,6 +14,7 @@ use crate::values::specified::{Length, NoCalcLength};
 use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use selectors::context::QuirksMode;
+use style_common::element_context::AttributeTracker;
 use style_traits::ParseError;
 
 /// A value for a `<source-size>`:

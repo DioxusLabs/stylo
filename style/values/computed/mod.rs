@@ -15,12 +15,9 @@ use super::generics::{self, GreaterThanOrEqualToOne, NonNegative, ZeroToOne};
 use super::specified;
 use super::{CSSFloat, CSSInteger};
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::context::{QuirksMode, TreeCountingCaches};
 use crate::custom_properties::ComputedCustomProperties;
 use crate::derives::*;
 use crate::device::Device;
-use crate::dom::DummyElementContext;
-use crate::dom::ElementContext;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::logical_geometry::WritingMode;
 #[cfg(feature = "gecko")]
@@ -37,11 +34,14 @@ use crate::values::specified::font::QueryFontMetricsFlags;
 use crate::values::specified::length::{FontBaseSize, LineHeightBase};
 use crate::{ArcSlice, Atom, One};
 use euclid::{default, Point2D, Rect, Size2D};
+use selectors::matching::QuirksMode;
 use servo_arc::Arc;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::ops::{Add, Sub};
+use style_common::element_context::TreeCountingCaches;
+use style_common::element_context::{DummyElementContext, ElementContext};
 use style_traits::{CSSPixel, DevicePixel};
 
 pub use self::align::{ContentDistribution, ItemPlacement, JustifyItems, SelfAlignment};

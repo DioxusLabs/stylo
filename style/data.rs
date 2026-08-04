@@ -25,7 +25,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 
 bitflags! {
     /// Various flags stored on ElementData.
-    #[derive(Debug, Default)]
+    #[derive(Default)]
     pub struct ElementDataFlags: u8 {
         /// Whether the styles changed for this restyle.
         const WAS_RESTYLED = 1 << 0;

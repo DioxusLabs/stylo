@@ -55,7 +55,6 @@ nsstring = []
 app_units = "0.7.8"
 arrayvec = "0.7"
 atomic_refcell = "0.1"
-bitflags = "2"
 byteorder = "1.0"
 cssparser = "0.37"
 derive_more = { version = "2", features = ["add", "add_assign", "deref", "deref_mut", "from"] }

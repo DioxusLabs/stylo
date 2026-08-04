@@ -5,8 +5,6 @@
 //! The restyle damage is a hint that tells layout which kind of operations may
 //! be needed in presence of incremental style changes.
 
-use bitflags::Flags;
-
 use crate::computed_values::isolation::T as Isolation;
 use crate::computed_values::mix_blend_mode::T as MixBlendMode;
 use crate::computed_values::transform_style::T as TransformStyle;
@@ -26,7 +24,7 @@ bitflags! {
     /// addition to the 4 bytes used for that, the rest of the `u16` is exposed as an extension point
     /// for users of the crate to add their own custom types of damage that correspond to the
     /// layout system they are implementing.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    #[derive(Clone, Copy, Eq, PartialEq)]
     pub struct ServoRestyleDamage: u16 {
         /// Repaint the node itself.
         ///
@@ -109,7 +107,7 @@ impl ServoRestyleDamage {
     pub fn reconstruct() -> ServoRestyleDamage {
         // There's no way of knowing what kind of damage system the embedder will use, but part of
         // this interface is that a fully saturated restyle damage means to rebuild everything.
-        ServoRestyleDamage::from_bits_retain(<ServoRestyleDamage as Flags>::Bits::MAX)
+        ServoRestyleDamage::from_bits_retain(u16::MAX)
     }
 }
 

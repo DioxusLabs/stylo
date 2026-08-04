@@ -401,16 +401,7 @@ pub enum LineHeightBase {
 impl FontBaseSize {
     /// Calculate the actual size for a given context
     pub fn resolve(&self, context: &Context) -> computed::FontSize {
-        let style = context.style();
-        match *self {
-            Self::CurrentStyle => style.get_font().clone_font_size(),
-            Self::InheritedStyle => {
-                // If we're using the size from our inherited style, we still need to apply our
-                // own zoom.
-                let zoom = style.effective_zoom_for_inheritance;
-                style.get_parent_font().clone_font_size().zoom(zoom)
-            },
-        }
+        context.font_size(*self)
     }
 }
 
@@ -730,7 +721,7 @@ impl NoCalcLength {
             );
             metrics.zero_advance_measure_or_default(
                 reference_font_size.used_size(),
-                context.style().writing_mode.is_upright(),
+                context.writing_mode().is_upright(),
             )
         }
 
@@ -758,9 +749,7 @@ impl NoCalcLength {
             metrics.ic_width_or_default(reference_font_size.used_size())
         }
 
-        context
-            .builder
-            .add_flags(ComputedValueFlags::USES_FONT_RELATIVE_UNITS);
+        context.add_flags(ComputedValueFlags::USES_FONT_RELATIVE_UNITS);
 
         let reference_font_size = base_size.resolve(context);
         let length = self.value;
@@ -777,20 +766,9 @@ impl NoCalcLength {
             },
             LengthUnit::Lh => {
                 let reference_size = if context.in_media_query {
-                    context
-                        .device()
-                        .calc_line_height(
-                            &context.default_style().get_font(),
-                            context.style().writing_mode,
-                            None,
-                        )
-                        .0
+                    context.default_line_height().0
                 } else {
-                    let line_height = context.builder.calc_line_height(
-                        context.device(),
-                        line_height_base,
-                        context.style().writing_mode,
-                    );
+                    let line_height = context.line_height(line_height_base);
                     if context.for_non_inherited_property
                         && line_height_base == LineHeightBase::CurrentStyle
                     {
@@ -808,83 +786,62 @@ impl NoCalcLength {
             LengthUnit::Cap => (cap_size(context, base_size), length),
             LengthUnit::Ic => (ic_size(context, base_size, &reference_font_size), length),
             LengthUnit::Rex => {
-                let reference_size = if context.builder.is_root_element || context.in_media_query {
+                let reference_size = if context.is_root_element() || context.in_media_query {
                     ex_size(context, base_size, &reference_font_size)
                 } else {
                     context
-                        .device()
                         .root_font_metrics_ex()
-                        .zoom(context.builder.effective_zoom)
+                        .zoom(context.effective_zoom())
                 };
                 (reference_size, length)
             },
             LengthUnit::Rch => {
-                let reference_size = if context.builder.is_root_element || context.in_media_query {
+                let reference_size = if context.is_root_element() || context.in_media_query {
                     ch_size(context, base_size, &reference_font_size)
                 } else {
                     context
-                        .device()
                         .root_font_metrics_ch()
-                        .zoom(context.builder.effective_zoom)
+                        .zoom(context.effective_zoom())
                 };
                 (reference_size, length)
             },
             LengthUnit::Rcap => {
-                let reference_size = if context.builder.is_root_element || context.in_media_query {
+                let reference_size = if context.is_root_element() || context.in_media_query {
                     cap_size(context, base_size)
                 } else {
                     context
-                        .device()
                         .root_font_metrics_cap()
-                        .zoom(context.builder.effective_zoom)
+                        .zoom(context.effective_zoom())
                 };
                 (reference_size, length)
             },
             LengthUnit::Ric => {
-                let reference_size = if context.builder.is_root_element || context.in_media_query {
+                let reference_size = if context.is_root_element() || context.in_media_query {
                     ic_size(context, base_size, &reference_font_size)
                 } else {
                     context
-                        .device()
                         .root_font_metrics_ic()
-                        .zoom(context.builder.effective_zoom)
+                        .zoom(context.effective_zoom())
                 };
                 (reference_size, length)
             },
             LengthUnit::Rem => {
-                let reference_size = if context.builder.is_root_element || context.in_media_query {
+                let reference_size = if context.is_root_element() || context.in_media_query {
                     reference_font_size.computed_size()
                 } else {
-                    context
-                        .device()
-                        .root_font_size()
-                        .zoom(context.builder.effective_zoom)
+                    context.root_font_size().zoom(context.effective_zoom())
                 };
                 (reference_size, length)
             },
             LengthUnit::Rlh => {
-                let reference_size = if context.builder.is_root_element {
-                    context
-                        .builder
-                        .calc_line_height(
-                            context.device(),
-                            line_height_base,
-                            context.style().writing_mode,
-                        )
-                        .0
+                let reference_size = if context.is_root_element() {
+                    context.line_height(line_height_base).0
                 } else if context.in_media_query {
-                    context
-                        .device()
-                        .calc_line_height(
-                            &context.default_style().get_font(),
-                            context.style().writing_mode,
-                            None,
-                        )
-                        .0
+                    context.default_line_height().0
                 } else {
-                    context.device().root_line_height()
+                    context.root_line_height()
                 };
-                let reference_size = reference_size.zoom(context.builder.effective_zoom);
+                let reference_size = reference_size.zoom(context.effective_zoom());
                 (reference_size, length)
             },
             _ => unreachable!("reference_font_size_and_length: not a font-relative unit"),
@@ -931,18 +888,15 @@ impl NoCalcLength {
             ViewportUnit::Vmin => cmp::min(size.width, size.height),
             ViewportUnit::Vmax => cmp::max(size.width, size.height),
             ViewportUnit::Vi | ViewportUnit::Vb => {
-                context
-                    .rule_cache_conditions
-                    .borrow_mut()
-                    .set_writing_mode_dependency(context.builder.writing_mode);
-                if (unit == ViewportUnit::Vb) == context.style().writing_mode.is_vertical() {
+                context.note_writing_mode_dependency();
+                if (unit == ViewportUnit::Vb) == context.writing_mode().is_vertical() {
                     size.width
                 } else {
                     size.height
                 }
             },
         };
-        let length = context.builder.effective_zoom.zoom(length.0 as f32);
+        let length = context.effective_zoom().zoom(length.0 as f32);
 
         let trunc_scaled =
             ((length as f64 * factor as f64 / 100.).trunc() / AU_PER_PX as f64) as f32;
@@ -955,9 +909,7 @@ impl NoCalcLength {
         if context.for_non_inherited_property {
             context.rule_cache_conditions.borrow_mut().set_uncacheable();
         }
-        context
-            .builder
-            .add_flags(ComputedValueFlags::USES_CONTAINER_UNITS);
+        context.add_flags(ComputedValueFlags::USES_CONTAINER_UNITS);
 
         let size = context.get_container_size_query();
         let factor = self.value;
@@ -1004,7 +956,7 @@ impl NoCalcLength {
     ) -> CSSPixelLength {
         if let Some(px) = self.to_px_if_absolute() {
             return CSSPixelLength::new(px)
-                .zoom(context.builder.effective_zoom)
+                .zoom(context.effective_zoom())
                 .finite();
         }
         let unit = self.length_unit();
@@ -1019,7 +971,9 @@ impl NoCalcLength {
         }
         debug_assert_eq!(unit, LengthUnit::ServoCharacterWidth);
         self.servo_character_width_to_computed_value(
-            context.style().get_font().clone_font_size().computed_size(),
+            context
+                .font_size(FontBaseSize::CurrentStyle)
+                .computed_size(),
         )
     }
 }

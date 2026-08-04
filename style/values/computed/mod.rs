@@ -22,6 +22,7 @@ use crate::device::Device;
 use crate::dom::DummyElementContext;
 use crate::dom::ElementContext;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
+use crate::logical_geometry::WritingMode;
 #[cfg(feature = "gecko")]
 use crate::properties;
 use crate::properties::{ComputedValues, StyleBuilder};
@@ -33,7 +34,7 @@ use crate::stylesheets::container_rule::{
 use crate::stylist::Stylist;
 use crate::values::generics::ClampToNonNegative;
 use crate::values::specified::font::QueryFontMetricsFlags;
-use crate::values::specified::length::FontBaseSize;
+use crate::values::specified::length::{FontBaseSize, LineHeightBase};
 use crate::{ArcSlice, Atom, One};
 use euclid::{default, Point2D, Rect, Size2D};
 use servo_arc::Arc;
@@ -41,6 +42,7 @@ use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::ops::{Add, Sub};
+use style_traits::{CSSPixel, DevicePixel};
 
 pub use self::align::{ContentDistribution, ItemPlacement, JustifyItems, SelfAlignment};
 pub use self::angle::Angle;
@@ -545,6 +547,220 @@ impl<'a> Context<'a> {
         } else {
             size
         }
+    }
+
+    /// The zoom to apply to effective values of the style being computed.
+    pub fn effective_zoom(&self) -> Zoom {
+        self.builder.effective_zoom
+    }
+
+    /// The writing mode of the style being computed.
+    pub fn writing_mode(&self) -> WritingMode {
+        self.builder.writing_mode
+    }
+
+    /// The writing mode we've inherited (the writing mode of our parent style).
+    pub fn inherited_writing_mode(&self) -> WritingMode {
+        *self.builder.inherited_writing_mode()
+    }
+
+    /// The computed value of the `writing-mode` property we've inherited.
+    pub fn parent_writing_mode_property(&self) -> WritingModeProperty {
+        self.builder.get_inherited_box().clone_writing_mode()
+    }
+
+    /// The computed value of the `text-align` property we've inherited.
+    pub fn parent_text_align(&self) -> TextAlign {
+        self.builder.get_parent_inherited_text().clone_text_align()
+    }
+
+    /// The computed value of the `color` property we've inherited, which
+    /// `currentColor` resolves against.
+    pub fn parent_color(&self) -> crate::color::AbsoluteColor {
+        self.builder.get_parent_inherited_text().clone_color()
+    }
+
+    /// Adds the given flags to the style being computed.
+    pub fn add_flags(&self, flags: ComputedValueFlags) {
+        self.builder.add_flags(flags);
+    }
+
+    /// Notes that the computed value depends on the writing mode in the rule
+    /// cache conditions.
+    pub fn note_writing_mode_dependency(&self) {
+        self.rule_cache_conditions
+            .borrow_mut()
+            .set_writing_mode_dependency(self.builder.writing_mode);
+    }
+
+    /// The font size of the style being computed, resolved against `base`.
+    pub fn font_size(&self, base: FontBaseSize) -> crate::values::computed::FontSize {
+        match base {
+            FontBaseSize::CurrentStyle => self.builder.get_font().clone_font_size(),
+            FontBaseSize::InheritedStyle => {
+                // If we're using the size from our inherited style, we still
+                // need to apply our own zoom.
+                let zoom = self.builder.effective_zoom_for_inheritance;
+                self.builder.get_parent_font().clone_font_size().zoom(zoom)
+            },
+        }
+    }
+
+    /// The line height of the style being computed, resolved against `base`.
+    pub fn line_height(&self, base: LineHeightBase) -> NonNegativeLength {
+        self.builder
+            .calc_line_height(self.device(), base, self.builder.writing_mode)
+    }
+
+    /// The line height of the default computed style, used for media query
+    /// evaluation.
+    pub fn default_line_height(&self) -> NonNegativeLength {
+        self.device().calc_line_height(
+            &self.default_style().get_font(),
+            self.builder.writing_mode,
+            None,
+        )
+    }
+
+    /// The line height of the root element.
+    pub fn root_line_height(&self) -> Length {
+        self.device().root_line_height()
+    }
+
+    /// The font size of the root element.
+    pub fn root_font_size(&self) -> Length {
+        self.device().root_font_size()
+    }
+
+    /// The x-height of the root element's font.
+    pub fn root_font_metrics_ex(&self) -> Length {
+        self.device().root_font_metrics_ex()
+    }
+
+    /// The zero-advance measure of the root element's font.
+    pub fn root_font_metrics_ch(&self) -> Length {
+        self.device().root_font_metrics_ch()
+    }
+
+    /// The cap-height of the root element's font.
+    pub fn root_font_metrics_cap(&self) -> Length {
+        self.device().root_font_metrics_cap()
+    }
+
+    /// The ideographic advance of the root element's font.
+    pub fn root_font_metrics_ic(&self) -> Length {
+        self.device().root_font_metrics_ic()
+    }
+
+    /// The number of app units per device pixel.
+    pub fn app_units_per_device_pixel(&self) -> i32 {
+        self.device().app_units_per_device_pixel()
+    }
+
+    /// The device pixel ratio, i.e. the ratio of device pixels per CSS pixel.
+    pub fn device_pixel_ratio(&self) -> euclid::Scale<f32, CSSPixel, DevicePixel> {
+        self.device().device_pixel_ratio()
+    }
+
+    /// Whether the given mime type is supported as an image format.
+    pub fn is_supported_mime_type(&self, mime_type: &str) -> bool {
+        self.device().is_supported_mime_type(mime_type)
+    }
+
+    /// Whether chrome rules are enabled for the document being styled.
+    pub fn chrome_rules_enabled_for_document(&self) -> bool {
+        self.device().chrome_rules_enabled_for_document()
+    }
+
+    /// The computed value of the `font-weight` property we've inherited.
+    pub fn parent_font_weight(&self) -> FontWeight {
+        self.builder.get_parent_font().clone_font_weight()
+    }
+
+    /// The keyword info of the font size we've inherited.
+    pub fn parent_font_size_keyword_info(&self) -> crate::values::specified::font::KeywordInfo {
+        self.builder
+            .get_parent_font()
+            .clone_font_size()
+            .keyword_info
+    }
+
+    /// The computed value of the `math-depth` property we've inherited.
+    pub fn parent_math_depth(&self) -> i8 {
+        self.builder.get_parent_font().clone_math_depth()
+    }
+
+    /// Whether the `math-style` property we've inherited computes to `compact`.
+    pub fn parent_math_style_is_compact(&self) -> bool {
+        use crate::properties::longhands::math_style::computed_value::T as MathStyleValue;
+        self.builder.get_parent_font().clone_math_style() == MathStyleValue::Compact
+    }
+
+    /// The base font size given the current font family and language, for
+    /// font-size keyword resolution.
+    pub fn base_size_for_font_size_keyword(&self) -> Length {
+        let font = self.builder.get_font();
+
+        #[cfg(feature = "servo")]
+        let family = &font.font_family.families;
+        #[cfg(feature = "gecko")]
+        let family = &font.mFont.family.families;
+
+        let generic = family
+            .single_generic()
+            .unwrap_or(self::font::GenericFontFamily::None);
+
+        #[cfg(feature = "gecko")]
+        let base_size = unsafe {
+            Atom::with(font.mLanguage.mRawPtr, |language| {
+                self.device().base_size_for_generic(language, generic)
+            })
+        };
+        #[cfg(feature = "servo")]
+        let base_size = self.device().base_size_for_generic(generic);
+        base_size
+    }
+
+    /// The color scheme of the style being computed.
+    pub fn color_scheme(&self) -> specified::color::ColorSchemeFlags {
+        self.builder.color_scheme
+    }
+
+    /// Notes a dependency of the computed value on the color scheme in the
+    /// rule cache conditions, if needed.
+    pub fn note_color_scheme_dependency(&self) {
+        if self.for_non_inherited_property {
+            self.rule_cache_conditions
+                .borrow_mut()
+                .set_color_scheme_dependency(self.builder.color_scheme);
+        }
+    }
+
+    /// Whether the used color scheme is dark.
+    pub fn is_dark_color_scheme(&self) -> bool {
+        self.device()
+            .is_dark_color_scheme(self.builder.color_scheme)
+    }
+
+    /// Resolves a system color.
+    #[cfg(feature = "servo")]
+    pub fn system_color(
+        &self,
+        color: specified::color::SystemColor,
+    ) -> crate::color::AbsoluteColor {
+        self.device().system_color(color, self.builder.color_scheme)
+    }
+
+    /// Resolves a system color as an nscolor.
+    #[cfg(feature = "gecko")]
+    pub fn system_nscolor(&self, color: specified::color::SystemColor) -> u32 {
+        self.device()
+            .system_nscolor(color, self.builder.color_scheme)
+    }
+
+    /// The color used for the "inherit color from body" quirk.
+    pub fn body_text_color(&self) -> crate::color::AbsoluteColor {
+        self.device().body_text_color()
     }
 }
 

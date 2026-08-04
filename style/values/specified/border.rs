@@ -247,7 +247,7 @@ fn snap_as_border_width(len: Au, context: &Context) -> Au {
         return len;
     }
 
-    let au_per_dev_px = context.device().app_units_per_device_pixel();
+    let au_per_dev_px = context.app_units_per_device_pixel();
     std::cmp::max(Au(au_per_dev_px), Au(len.0 / au_per_dev_px * au_per_dev_px))
 }
 
@@ -282,7 +282,7 @@ impl ToComputedValue for BorderSideOffset {
         let offset = Au::from_f32_px(self.0.to_computed_value(context).px());
         let should_snap = match static_prefs::pref!("layout.css.outline-offset.snapping") {
             1 => true,
-            2 => context.device().chrome_rules_enabled_for_document(),
+            2 => context.chrome_rules_enabled_for_document(),
             _ => false,
         };
         if !should_snap {

@@ -592,14 +592,11 @@ impl ToComputedValue for TextAlign {
                 // In that case, the default behavior here will set it to left,
                 // but we want to set it to right -- instead set it to the default (`start`),
                 // which will do the right thing in this case (but not the general case)
-                if _context.builder.is_root_element {
+                if _context.is_root_element() {
                     return TextAlignKeyword::Start;
                 }
-                let parent = _context
-                    .builder
-                    .get_parent_inherited_text()
-                    .clone_text_align();
-                let ltr = _context.builder.inherited_writing_mode().is_bidi_ltr();
+                let parent = _context.parent_text_align();
+                let ltr = _context.inherited_writing_mode().is_bidi_ltr();
                 match (parent, ltr) {
                     (TextAlignKeyword::Start, true) => TextAlignKeyword::Left,
                     (TextAlignKeyword::Start, false) => TextAlignKeyword::Right,
@@ -609,10 +606,7 @@ impl ToComputedValue for TextAlign {
                 }
             },
             TextAlign::MozCenterOrInherit => {
-                let parent = _context
-                    .builder
-                    .get_parent_inherited_text()
-                    .clone_text_align();
+                let parent = _context.parent_text_align();
                 if parent == TextAlignKeyword::Start {
                     TextAlignKeyword::Center
                 } else {
@@ -726,8 +720,7 @@ impl ToComputedValue for TextEmphasisStyle {
                     //
                     // Also should probably use WritingMode::is_vertical rather
                     // than the computed value of the `writing-mode` property.
-                    if context.style().get_inherited_box().clone_writing_mode()
-                        == SpecifiedWritingMode::HorizontalTb
+                    if context.parent_writing_mode_property() == SpecifiedWritingMode::HorizontalTb
                     {
                         TextEmphasisShapeKeyword::Circle
                     } else {

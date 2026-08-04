@@ -175,16 +175,8 @@ impl ToComputedValue for FontWeight {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             FontWeight::Absolute(ref abs) => abs.to_computed_value(context),
-            FontWeight::Bolder => context
-                .builder
-                .get_parent_font()
-                .clone_font_weight()
-                .bolder(),
-            FontWeight::Lighter => context
-                .builder
-                .get_parent_font()
-                .clone_font_weight()
-                .lighter(),
+            FontWeight::Bolder => context.parent_font_weight().bolder(),
+            FontWeight::Lighter => context.parent_font_weight().lighter(),
             FontWeight::System(_) => self.compute_system(context),
         }
     }
@@ -607,7 +599,7 @@ impl KeywordInfo {
         #[cfg(feature = "gecko")]
         debug_assert_ne!(self.kw, FontSizeKeyword::Math);
         let base = context.maybe_zoom_text(self.kw.to_length(context).0);
-        let zoom_factor = context.style().effective_zoom.value();
+        let zoom_factor = context.effective_zoom().value();
         CSSPixelLength::new(base.px() * self.factor * zoom_factor)
             + context.maybe_zoom_text(self.offset)
     }
@@ -813,26 +805,7 @@ pub const FONT_MEDIUM_IC_PX: f32 = FONT_MEDIUM_PX;
 impl FontSizeKeyword {
     #[inline]
     fn to_length(&self, cx: &Context) -> NonNegativeLength {
-        let font = cx.style().get_font();
-
-        #[cfg(feature = "servo")]
-        let family = &font.font_family.families;
-        #[cfg(feature = "gecko")]
-        let family = &font.mFont.family.families;
-
-        let generic = family
-            .single_generic()
-            .unwrap_or(computed::GenericFontFamily::None);
-
-        #[cfg(feature = "gecko")]
-        let base_size = unsafe {
-            Atom::with(font.mLanguage.mRawPtr, |language| {
-                cx.device().base_size_for_generic(language, generic)
-            })
-        };
-        #[cfg(feature = "servo")]
-        let base_size = cx.device().base_size_for_generic(generic);
-
+        let base_size = cx.base_size_for_font_size_keyword();
         self.to_length_without_context(cx.quirks_mode, base_size)
     }
 
@@ -926,14 +899,7 @@ impl FontSize {
         base_size: FontBaseSize,
         line_height_base: LineHeightBase,
     ) -> computed::FontSize {
-        let compose_keyword = |factor| {
-            context
-                .style()
-                .get_parent_font()
-                .clone_font_size()
-                .keyword_info
-                .compose(factor)
-        };
+        let compose_keyword = |factor| context.parent_font_size_keyword_info().compose(factor);
         let mut info = KeywordInfo::none();
         let size =
             match *self {
@@ -1005,7 +971,7 @@ impl FontSize {
                             .unwrap()
                             .font_size
                             .computed_size()
-                            .zoom(context.builder.effective_zoom)
+                            .zoom(context.effective_zoom())
                     }
                 },
             };
@@ -1195,7 +1161,7 @@ impl FontVariantAlternates {
     }
 
     /// Iterates over all alternates in the list.
-    pub fn iter(&self) -> impl Iterator<Item=&VariantAlternates> {
+    pub fn iter(&self) -> impl Iterator<Item = &VariantAlternates> {
         self.0.iter()
     }
 
@@ -2043,7 +2009,9 @@ impl ToComputedValue for LineHeight {
                             FontBaseSize::CurrentStyle,
                             LineHeightBase::InheritedStyle,
                         );
-                        let base = context.style().get_font().clone_font_size().computed_size();
+                        let base = context
+                            .font_size(FontBaseSize::CurrentStyle)
+                            .computed_size();
                         computed_calc.resolve(base)
                     },
                 };

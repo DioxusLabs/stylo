@@ -25,7 +25,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssString, CssWriter, ToCss};
 use thin_vec::ThinVec;
 
-pub use specified::{ImageRendering, ImageDecoding};
+pub use specified::{ImageDecoding, ImageRendering};
 
 /// Computed values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
@@ -94,14 +94,14 @@ impl ToComputedValue for specified::ImageSet {
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         let items = self.items.to_computed_value(context);
-        let dpr = context.device().device_pixel_ratio().get();
+        let dpr = context.device_pixel_ratio().get();
 
         let mut supported_image = false;
         let mut selected_index = std::usize::MAX;
         let mut selected_resolution = 0.0;
 
         for (i, item) in items.iter().enumerate() {
-            if item.has_mime_type && !context.device().is_supported_mime_type(&item.mime_type) {
+            if item.has_mime_type && !context.is_supported_mime_type(&item.mime_type) {
                 // If the MIME type is not supported, we discard the ImageSetItem.
                 continue;
             }

@@ -18,6 +18,7 @@ pub use self::generated::*;
 #[allow(unsafe_code)]
 #[deny(missing_docs)]
 pub mod generated {
+    include!(concat!(env!("OUT_DIR"), "/properties_structs.rs"));
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
 

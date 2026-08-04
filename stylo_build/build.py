@@ -54,14 +54,19 @@ def main():
         return
 
     properties_template = os.path.join(BASE, "properties.mako.rs")
-    properties_file = render(
-        properties_template,
-        engine=engine,
-        data=properties,
-        __file__=properties_template,
-        OUT_DIR=OUT_DIR,
-    )
-    write(OUT_DIR, "properties.rs", properties_file)
+    for half, filename in [
+        ("types", "properties_structs.rs"),
+        ("machinery", "properties.rs"),
+    ]:
+        properties_file = render(
+            properties_template,
+            engine=engine,
+            data=properties,
+            half=half,
+            __file__=properties_template,
+            OUT_DIR=OUT_DIR,
+        )
+        write(OUT_DIR, filename, properties_file)
 
     if engine != "servo":
         return

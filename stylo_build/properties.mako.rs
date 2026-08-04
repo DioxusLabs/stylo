@@ -8,6 +8,7 @@
 <% from itertools import groupby %>
 <% from data import PropertyRestrictions, to_camel_case, RULE_VALUES, SYSTEM_FONT_LONGHANDS, PRIORITARY_PROPERTIES, PRIORITARY_PROPERTY_DEPENDENCIES %>
 
+% if half == "types":
 use servo_arc::{Arc, UniqueArc};
 use std::{ops, ptr, fmt, mem};
 
@@ -45,7 +46,9 @@ use style_traits::property_ids::{
     property_counts, CountedUnknownProperty, IndexedId, LogicalGroupId, LonghandId, ShorthandId,
 };
 use debug_unreachable::debug_unreachable;
+% endif
 
+% if half == "machinery":
 /// Conversion with fewer impls than From/Into
 pub trait MaybeBoxed<Out> {
     /// Convert
@@ -62,15 +65,28 @@ impl<T> MaybeBoxed<Box<T>> for T {
     fn maybe_boxed(self) -> Box<T> { Box::new(self) }
 }
 
+% endif
+% if half == "types":
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
 <%
     for longhand in data.longhands:
-        helpers.longhand(longhand)
+        helpers.longhand_types(longhand)
 %>
 }
+% else:
+/// A module with the parse and cascade machinery for longhand properties.
+#[allow(missing_docs)]
+pub mod longhands_machinery {
+<%
+    for longhand in data.longhands:
+        helpers.longhand_machinery(longhand)
+%>
+}
+% endif
 
+% if half == "machinery":
 
 % if engine == "gecko":
 #[allow(unsafe_code, missing_docs)]
@@ -320,6 +336,7 @@ unsafe fn static_assert_noncustomcsspropertyid() {
     % endfor
 }
 % endif
+% endif
 
 <%def name="id_set(set_type, ids, is_member)">
 <%
@@ -342,6 +359,7 @@ ${id_set("LonghandIdSet", data.longhands, is_member)}
 <%def name="prioritary_property_id_set(is_member)">
 ${id_set("PrioritaryPropertyIdSet", [p for p in data.longhands if p.is_prioritary()], is_member)}
 </%def>
+% if half == "machinery":
 
 enum LogicalMappingKind {
     Side(LogicalSide),
@@ -497,7 +515,7 @@ impl LonghandIdExt for LonghandId {
         ) -> Result<PropertyDeclaration, ParseError<'i>>;
         static PARSE_PROPERTY: [ParsePropertyFn; property_counts::LONGHANDS] = [
         % for property in data.longhands:
-            longhands::${property.ident}::parse_declared,
+            longhands_machinery::${property.ident}::parse_declared,
         % endfor
         ];
         (PARSE_PROPERTY[self as usize])(context, input)
@@ -743,6 +761,8 @@ impl PropertyDeclaration {
     }
 }
 
+% endif
+% if half == "types":
 #[cfg(feature = "gecko")]
 pub use super::gecko::style_structs;
 
@@ -1182,113 +1202,6 @@ impl ComputedValues {
 % endif
 % endfor
 
-    /// Writes the (resolved or computed) value of the given longhand as a string in `dest`.
-    ///
-    /// TODO(emilio): We should move all the special resolution from
-    /// nsComputedDOMStyle to ToResolvedValue instead.
-    pub fn computed_or_resolved_value(
-        &self,
-        property_id: LonghandId,
-        context: Option<&mut resolved::Context>,
-        dest: &mut CssStringWriter,
-    ) -> fmt::Result {
-        let mut dest = CssWriter::new(dest);
-        let property_id = property_id.to_physical(self.writing_mode);
-        match property_id {
-            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
-            <% props = list(props) %>
-            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let value = match property_id {
-                    % for prop in props:
-                    % if not prop.logical:
-                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
-                    % endif
-                    % endfor
-                    _ => unsafe { debug_unreachable!() },
-                };
-                if let Some(c) = context {
-                    c.current_longhand = Some(property_id);
-                    value.to_resolved_value(c).to_css(&mut dest)
-                } else {
-                    value.to_css(&mut dest)
-                }
-            }
-            % endfor
-        }
-    }
-
-    /// Returns the computed value of the given longhand as a
-    /// [`TypedValueList`], if supported.
-    pub fn property_value_to_typed_value_list(
-        &self,
-        property_id: LonghandId,
-    ) -> Option<TypedValueList> {
-        let property_id = property_id.to_physical(self.writing_mode);
-        match property_id {
-            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
-            <% props = list(props) %>
-            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let value = match property_id {
-                    % for prop in props:
-                    % if not prop.logical:
-                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
-                    % endif
-                    % endfor
-                    _ => unsafe { debug_unreachable!() },
-                };
-                value.to_typed_value_list()
-            }
-            % endfor
-        }
-    }
-
-    /// Returns the given longhand's resolved value as a property declaration.
-    pub fn computed_or_resolved_declaration(
-        &self,
-        property_id: LonghandId,
-        context: Option<&mut resolved::Context>,
-    ) -> PropertyDeclaration {
-        let physical_property_id = property_id.to_physical(self.writing_mode);
-        match physical_property_id {
-            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
-            <% props = list(props) %>
-            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let mut computed_value = match physical_property_id {
-                    % for prop in props:
-                    % if not prop.logical:
-                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
-                    % endif
-                    % endfor
-                    _ => unsafe { debug_unreachable!() },
-                };
-                if let Some(c) = context {
-                    c.current_longhand = Some(physical_property_id);
-                    let resolved = computed_value.to_resolved_value(c);
-                    computed_value = ToResolvedValue::from_resolved_value(resolved);
-                }
-                let specified = ToComputedValue::from_computed_value(&computed_value);
-                % if props[0].boxed:
-                let specified = Box::new(specified);
-                % endif
-                % if len(props) == 1:
-                PropertyDeclaration::${props[0].camel_case}(specified)
-                % else:
-                unsafe {
-                    let mut out = mem::MaybeUninit::uninit();
-                    ptr::write(
-                        out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${specified_type}>,
-                        PropertyDeclarationVariantRepr {
-                            tag: property_id as u16,
-                            value: specified,
-                        },
-                    );
-                    out.assume_init()
-                }
-                % endif
-            }
-            % endfor
-        }
-    }
 
     /// Resolves the currentColor keyword.
     ///
@@ -1317,11 +1230,6 @@ impl ComputedValues {
         % endif
         % endfor
         set
-    }
-
-    /// Create a `TransitionPropertyIterator` for this styles transition properties.
-    pub fn transition_properties<'a>(&'a self) -> TransitionPropertyIterator<'a> {
-        TransitionPropertyIterator::from_style(self)
     }
 }
 
@@ -2227,6 +2135,8 @@ impl<'a> StyleBuilder<'a> {
     % endfor
 }
 
+% endif
+% if half == "machinery":
 /// A per-longhand function that performs the CSS cascade for that longhand.
 pub type CascadePropertyFn =
     unsafe extern "Rust" fn(
@@ -2238,9 +2148,126 @@ pub type CascadePropertyFn =
 /// them, effectively doing virtual dispatch.
 pub static CASCADE_PROPERTY: [CascadePropertyFn; property_counts::LONGHANDS] = [
     % for property in data.longhands:
-        longhands::${property.ident}::cascade_property,
+        longhands_machinery::${property.ident}::cascade_property,
     % endfor
 ];
+
+
+% if half == "machinery":
+impl ComputedValues {
+    /// Writes the (resolved or computed) value of the given longhand as a string in `dest`.
+    ///
+    /// TODO(emilio): We should move all the special resolution from
+    /// nsComputedDOMStyle to ToResolvedValue instead.
+    pub fn computed_or_resolved_value(
+        &self,
+        property_id: LonghandId,
+        context: Option<&mut resolved::Context>,
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
+        let mut dest = CssWriter::new(dest);
+        let property_id = property_id.to_physical(self.writing_mode);
+        match property_id {
+            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
+            <% props = list(props) %>
+            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
+                let value = match property_id {
+                    % for prop in props:
+                    % if not prop.logical:
+                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
+                    % endif
+                    % endfor
+                    _ => unsafe { debug_unreachable!() },
+                };
+                if let Some(c) = context {
+                    c.current_longhand = Some(property_id);
+                    value.to_resolved_value(c).to_css(&mut dest)
+                } else {
+                    value.to_css(&mut dest)
+                }
+            }
+            % endfor
+        }
+    }
+
+    /// Returns the computed value of the given longhand as a
+    /// [`TypedValueList`], if supported.
+    pub fn property_value_to_typed_value_list(
+        &self,
+        property_id: LonghandId,
+    ) -> Option<TypedValueList> {
+        let property_id = property_id.to_physical(self.writing_mode);
+        match property_id {
+            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
+            <% props = list(props) %>
+            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
+                let value = match property_id {
+                    % for prop in props:
+                    % if not prop.logical:
+                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
+                    % endif
+                    % endfor
+                    _ => unsafe { debug_unreachable!() },
+                };
+                value.to_typed_value_list()
+            }
+            % endfor
+        }
+    }
+
+    /// Returns the given longhand's resolved value as a property declaration.
+    pub fn computed_or_resolved_declaration(
+        &self,
+        property_id: LonghandId,
+        context: Option<&mut resolved::Context>,
+    ) -> PropertyDeclaration {
+        let physical_property_id = property_id.to_physical(self.writing_mode);
+        match physical_property_id {
+            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
+            <% props = list(props) %>
+            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
+                let mut computed_value = match physical_property_id {
+                    % for prop in props:
+                    % if not prop.logical:
+                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
+                    % endif
+                    % endfor
+                    _ => unsafe { debug_unreachable!() },
+                };
+                if let Some(c) = context {
+                    c.current_longhand = Some(physical_property_id);
+                    let resolved = computed_value.to_resolved_value(c);
+                    computed_value = ToResolvedValue::from_resolved_value(resolved);
+                }
+                let specified = ToComputedValue::from_computed_value(&computed_value);
+                % if props[0].boxed:
+                let specified = Box::new(specified);
+                % endif
+                % if len(props) == 1:
+                PropertyDeclaration::${props[0].camel_case}(specified)
+                % else:
+                unsafe {
+                    let mut out = mem::MaybeUninit::uninit();
+                    ptr::write(
+                        out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${specified_type}>,
+                        PropertyDeclarationVariantRepr {
+                            tag: property_id as u16,
+                            value: specified,
+                        },
+                    );
+                    out.assume_init()
+                }
+                % endif
+            }
+            % endfor
+        }
+    }
+    /// Create a `TransitionPropertyIterator` for this styles transition properties.
+    pub fn transition_properties<'a>(&'a self) -> TransitionPropertyIterator<'a> {
+        TransitionPropertyIterator::from_style(self)
+    }
+}
+% endif
 
 /// Call the given macro with tokens like this for each longhand and shorthand properties
 /// that is enabled in content:
@@ -2344,8 +2371,9 @@ pub(crate) fn restyle_damage_${effect_name} (old: &ComputedValues, new: &Compute
 }
 % endfor
 % endif
+% endif
 
-/// Descriptor types for @-rules like @font-face and @counter-style.
+// Descriptor types for @-rules like @font-face and @counter-style.
 <%def name="generate_descriptors(descriptors)">
 use super::*;
 #[allow(unused_imports)]
@@ -2528,6 +2556,7 @@ impl<'a, 'b, 'i> cssparser::DeclarationParser<'i> for DescriptorParser<'a, 'b> {
     }
 }
 </%def>
+% if half == "machinery":
 
 /// Generated code for @font-face descriptors.
 pub mod font_face {
@@ -2552,3 +2581,5 @@ pub mod view_transition {
     use crate::stylesheets::view_transition_rule::*;
 ${generate_descriptors(data.view_transition_descriptors)}
 }
+
+% endif

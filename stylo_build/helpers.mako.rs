@@ -4,7 +4,7 @@
 
 <%! from data import to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS %>
 
-<%def name="longhand(property)">
+<%def name="longhand_types(property)">
 /// ${property.spec}
 pub mod ${property.ident} {
     #[allow(unused_imports)]
@@ -20,130 +20,7 @@ pub mod ${property.ident} {
     use crate::parser::{Parse, ParserContext};
     use style_traits::ParseError;
     #[allow(unused_imports)]
-    use crate::properties::{longhands, LonghandId, CSSWideKeyword, PropertyDeclaration};
-
-    #[allow(unused_variables)]
-    pub unsafe fn cascade_property(
-        declaration: &PropertyDeclaration,
-        context: &mut computed::Context,
-    ) {
-        % if property.logical:
-        declaration.debug_crash("Should physicalize before entering here");
-        % else:
-        context.for_non_inherited_property = ${"false" if property.style_struct.inherited else "true"};
-        % if property.logical_group:
-        debug_assert_eq!(
-            declaration.id().as_longhand().unwrap().logical_group(),
-            LonghandId::${property.camel_case}.logical_group(),
-        );
-        % else:
-        debug_assert_eq!(
-            declaration.id().as_longhand().unwrap(),
-            LonghandId::${property.camel_case},
-        );
-        % endif
-        let specified_value = match *declaration {
-            PropertyDeclaration::CSSWideKeyword(ref wk) => {
-                match wk.keyword {
-                    % if not property.style_struct.inherited:
-                    CSSWideKeyword::Unset |
-                    % endif
-                    CSSWideKeyword::Initial => {
-                        % if not property.style_struct.inherited:
-                            declaration.debug_crash("Unexpected initial or unset for non-inherited property");
-                        % else:
-                            context.builder.reset_${property.ident}();
-                        % endif
-                    },
-                    % if property.style_struct.inherited:
-                    CSSWideKeyword::Unset |
-                    % endif
-                    CSSWideKeyword::Inherit => {
-                        % if not property.style_struct.inherited:
-                            context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                        % endif
-                        % if property.is_zoom_dependent():
-                            if !context.builder.effective_zoom_for_inheritance.is_one() {
-                                let old_zoom = context.builder.effective_zoom;
-                                context.builder.effective_zoom = context.builder.effective_zoom_for_inheritance;
-                                let computed = context.builder.inherited_style.clone_${property.ident}();
-                                let specified = computed::ToComputedValue::from_computed_value(&computed);
-                                % if property.boxed:
-                                let specified = Box::new(specified);
-                                % endif
-                                let decl = PropertyDeclaration::${property.camel_case}(specified);
-                                cascade_property(&decl, context);
-                                context.builder.effective_zoom = old_zoom;
-                                return;
-                            }
-                        % endif
-                        % if property.style_struct.inherited:
-                            declaration.debug_crash("Unexpected inherit or unset for non-zoom-dependent inherited property");
-                        % else:
-                            context.builder.inherit_${property.ident}();
-                        % endif
-                    }
-                    CSSWideKeyword::RevertRule |
-                    CSSWideKeyword::RevertLayer |
-                    CSSWideKeyword::Revert => {
-                        declaration.debug_crash("Found revert* not dealt with");
-                    },
-                }
-                return;
-            },
-            #[cfg(debug_assertions)]
-            PropertyDeclaration::WithVariables(..) => {
-                declaration.debug_crash("Found variables not substituted");
-                return;
-            },
-            _ => unsafe {
-                declaration.unchecked_value_as::<${property.specified_type()}>()
-            },
-        };
-
-        % if property.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko":
-        if let Some(sf) = specified_value.get_system() {
-            crate::properties::gecko::system_font::resolve_system_font(sf, context);
-        }
-        % endif
-
-        % if property.vector and not property.vector.simple_bindings and engine == "gecko":
-            // In the case of a vector property we want to pass down an
-            // iterator so that this can be computed without allocation.
-            //
-            // However, computing requires a context, but the style struct
-            // being mutated is on the context. We temporarily remove it,
-            // mutate it, and then put it back. Vector longhands cannot
-            // touch their own style struct whilst computing, else this will
-            // panic.
-            let mut s =
-                context.builder.take_${property.style_struct.name_lower}();
-            {
-                let iter = specified_value.compute_iter(context);
-                s.set_${property.ident}(iter);
-            }
-            context.builder.put_${property.style_struct.name_lower}(s);
-        % else:
-            % if property.boxed:
-            let computed = (**specified_value).to_computed_value(context);
-            % else:
-            let computed = specified_value.to_computed_value(context);
-            % endif
-            context.builder.set_${property.ident}(computed)
-        % endif
-        % endif
-    }
-
-    pub fn parse_declared<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<PropertyDeclaration, ParseError<'i>> {
-        parse(context, input)
-        % if property.boxed:
-            .map(Box::new)
-        % endif
-            .map(PropertyDeclaration::${property.camel_case})
-    }
+    use crate::properties::longhands;
 
     % if property.vector:
     pub mod single_value {
@@ -514,7 +391,7 @@ pub mod ${property.ident} {
 
     % if not property.vector.simple_bindings and engine == "gecko":
     impl SpecifiedValue {
-        fn compute_iter<'a, 'cx, 'cx_a>(
+        pub fn compute_iter<'a, 'cx, 'cx_a>(
             &'a self,
             context: &'cx computed::Context<'cx_a>,
         ) -> computed_value::Iter<'a, 'cx, 'cx_a> {
@@ -543,6 +420,146 @@ pub mod ${property.ident} {
         }
     }
     % endif
+}
+</%def>
+
+<%def name="longhand_machinery(property)">
+/// Parse/cascade machinery for ${property.name}.
+pub mod ${property.ident} {
+    #[allow(unused_imports)]
+    use crate::values::{computed, specified};
+    #[allow(unused_imports)]
+    use crate::values::computed::ToComputedValue;
+    use cssparser::Parser;
+    #[allow(unused_imports)]
+    use crate::parser::{Parse, ParserContext};
+    use style_traits::ParseError;
+    #[allow(unused_imports)]
+    use crate::properties::{longhands, LonghandId, CSSWideKeyword, PropertyDeclaration};
+
+    #[allow(unused_variables)]
+    pub unsafe fn cascade_property(
+        declaration: &PropertyDeclaration,
+        context: &mut computed::Context,
+    ) {
+        % if property.logical:
+        declaration.debug_crash("Should physicalize before entering here");
+        % else:
+        context.for_non_inherited_property = ${"false" if property.style_struct.inherited else "true"};
+        % if property.logical_group:
+        debug_assert_eq!(
+            declaration.id().as_longhand().unwrap().logical_group(),
+            LonghandId::${property.camel_case}.logical_group(),
+        );
+        % else:
+        debug_assert_eq!(
+            declaration.id().as_longhand().unwrap(),
+            LonghandId::${property.camel_case},
+        );
+        % endif
+        let specified_value = match *declaration {
+            PropertyDeclaration::CSSWideKeyword(ref wk) => {
+                match wk.keyword {
+                    % if not property.style_struct.inherited:
+                    CSSWideKeyword::Unset |
+                    % endif
+                    CSSWideKeyword::Initial => {
+                        % if not property.style_struct.inherited:
+                            declaration.debug_crash("Unexpected initial or unset for non-inherited property");
+                        % else:
+                            context.builder.reset_${property.ident}();
+                        % endif
+                    },
+                    % if property.style_struct.inherited:
+                    CSSWideKeyword::Unset |
+                    % endif
+                    CSSWideKeyword::Inherit => {
+                        % if not property.style_struct.inherited:
+                            context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                        % endif
+                        % if property.is_zoom_dependent():
+                            if !context.builder.effective_zoom_for_inheritance.is_one() {
+                                let old_zoom = context.builder.effective_zoom;
+                                context.builder.effective_zoom = context.builder.effective_zoom_for_inheritance;
+                                let computed = context.builder.inherited_style.clone_${property.ident}();
+                                let specified = computed::ToComputedValue::from_computed_value(&computed);
+                                % if property.boxed:
+                                let specified = Box::new(specified);
+                                % endif
+                                let decl = PropertyDeclaration::${property.camel_case}(specified);
+                                cascade_property(&decl, context);
+                                context.builder.effective_zoom = old_zoom;
+                                return;
+                            }
+                        % endif
+                        % if property.style_struct.inherited:
+                            declaration.debug_crash("Unexpected inherit or unset for non-zoom-dependent inherited property");
+                        % else:
+                            context.builder.inherit_${property.ident}();
+                        % endif
+                    }
+                    CSSWideKeyword::RevertRule |
+                    CSSWideKeyword::RevertLayer |
+                    CSSWideKeyword::Revert => {
+                        declaration.debug_crash("Found revert* not dealt with");
+                    },
+                }
+                return;
+            },
+            #[cfg(debug_assertions)]
+            PropertyDeclaration::WithVariables(..) => {
+                declaration.debug_crash("Found variables not substituted");
+                return;
+            },
+            _ => unsafe {
+                declaration.unchecked_value_as::<${property.specified_type()}>()
+            },
+        };
+
+        % if property.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko":
+        if let Some(sf) = specified_value.get_system() {
+            crate::properties::gecko::system_font::resolve_system_font(sf, context);
+        }
+        % endif
+
+        % if property.vector and not property.vector.simple_bindings and engine == "gecko":
+            // In the case of a vector property we want to pass down an
+            // iterator so that this can be computed without allocation.
+            //
+            // However, computing requires a context, but the style struct
+            // being mutated is on the context. We temporarily remove it,
+            // mutate it, and then put it back. Vector longhands cannot
+            // touch their own style struct whilst computing, else this will
+            // panic.
+            let mut s =
+                context.builder.take_${property.style_struct.name_lower}();
+            {
+                let iter = specified_value.compute_iter(context);
+                s.set_${property.ident}(iter);
+            }
+            context.builder.put_${property.style_struct.name_lower}(s);
+        % else:
+            % if property.boxed:
+            let computed = (**specified_value).to_computed_value(context);
+            % else:
+            let computed = specified_value.to_computed_value(context);
+            % endif
+            context.builder.set_${property.ident}(computed)
+        % endif
+        % endif
+    }
+
+    pub fn parse_declared<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<PropertyDeclaration, ParseError<'i>> {
+        longhands::${property.ident}::parse(context, input)
+        % if property.boxed:
+            .map(Box::new)
+        % endif
+            .map(PropertyDeclaration::${property.camel_case})
+    }
+
 }
 </%def>
 

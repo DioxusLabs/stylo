@@ -89,15 +89,7 @@ pub use self::stylesheet::{StylesheetContents, StylesheetInDocument};
 pub use self::supports_rule::SupportsRule;
 pub use self::view_transition_rule::{NavigationType, ViewTransitionRule};
 
-/// The CORS mode used for a CSS load.
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
-pub enum CorsMode {
-    /// No CORS mode, so cross-origin loads can be done.
-    None,
-    /// Anonymous CORS request.
-    Anonymous,
-}
+pub use style_traits::rule_types::CorsMode;
 
 /// Extra data that the backend may need to resolve url values.
 ///

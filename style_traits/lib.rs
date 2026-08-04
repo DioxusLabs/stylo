@@ -69,6 +69,7 @@ pub enum CSSPixel {}
 
 pub mod arc_slice;
 pub mod dom;
+pub mod origin;
 pub mod property_ids;
 pub mod rule_types;
 pub mod specified_value_info;

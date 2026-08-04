@@ -6,6 +6,16 @@
 
 use num_derive::FromPrimitive;
 
+/// The CORS mode used for a CSS load.
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
+pub enum CorsMode {
+    /// No CORS mode, so cross-origin loads can be done.
+    None,
+    /// Anonymous CORS request.
+    Anonymous,
+}
+
 /// https://drafts.csswg.org/cssom-1/#dom-cssrule-type
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, PartialEq)]

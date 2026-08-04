@@ -5,11 +5,11 @@
 //! Helper to iterate over `OriginFlags` bits.
 
 use crate::gecko_bindings::structs::OriginFlags;
-use crate::stylesheets::OriginSet;
+use style_traits::origin::OriginSet;
 
 /// Checks that the values for OriginFlags are the ones we expect.
 pub fn assert_flags_match() {
-    use crate::stylesheets::origin::*;
+    use style_traits::origin::*;
     debug_assert_eq!(
         OriginFlags::UserAgent.0,
         OriginSet::ORIGIN_USER_AGENT.bits()

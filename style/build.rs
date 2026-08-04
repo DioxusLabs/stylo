@@ -4,16 +4,6 @@
 
 use std::env;
 
-pub use stylo_build::PYTHON;
-
-#[cfg(feature = "gecko")]
-mod build_gecko;
-
-#[cfg(not(feature = "gecko"))]
-mod build_gecko {
-    pub fn generate() {}
-}
-
 fn main() {
     let gecko = cfg!(feature = "gecko");
     let servo = cfg!(feature = "servo");
@@ -29,5 +19,4 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
     stylo_build::generate_properties(engine);
-    build_gecko::generate();
 }

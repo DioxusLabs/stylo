@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use crate::stylesheets::UrlExtraData;
+use crate::url_extra_data::UrlExtraData;
 use cssparser::{BasicParseErrorKind, ParseErrorKind, SourceLocation, Token};
 use selectors::parser::{Combinator, Component, RelativeSelector, Selector, SelectorImpl};
 use selectors::visitor::{SelectorListKind, SelectorVisitor};

@@ -4,13 +4,12 @@
 
 //! Different objects protected by the same lock
 
-use crate::derives::MallocSizeOf;
-use crate::stylesheets::Origin;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use servo_arc::Arc;
 use std::cell::UnsafeCell;
 use std::fmt;
 use std::ptr;
+use style_traits::origin::Origin;
 use style_traits::{CssString, CssStringWriter};
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 

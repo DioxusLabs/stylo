@@ -1,0 +1,73 @@
+[package]
+name = "stylo_common"
+version.workspace = true
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+repository = "https://github.com/servo/stylo"
+edition = "2021"
+description = "Implementation support code shared by the Stylo CSS engine crates"
+readme = "../README.md"
+
+[lib]
+name = "style_common"
+path = "lib.rs"
+doctest = false
+
+[features]
+default = ["servo"]
+gecko = [
+    "bindgen",
+    "stylo_build",
+    "malloc_size_of/gecko",
+    "mozbuild",
+    "nsstring",
+    "regex",
+    "style_traits/gecko",
+    "toml",
+    "selectors/to_shmem",
+    "to_shmem/gecko",
+]
+servo = [
+    "cssparser/serde",
+    "malloc_size_of/servo",
+    "web_atoms",
+    "servo_arc/servo",
+    "stylo_atoms",
+    "string_cache",
+    "style_traits/servo",
+    "url",
+    "selectors/to_shmem",
+    "to_shmem/servo",
+]
+gecko_debug = []
+gecko_refcount_logging = []
+nsstring = []
+
+[dependencies]
+atomic_refcell = "0.1"
+bitflags = "2"
+cssparser = "0.37"
+derive_more = { version = "2", features = ["deref"] }
+log = "0.4"
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = "0.1"
+rustc-hash = "2.1.1"
+selectors = { workspace = true }
+servo_arc = { workspace = true }
+smallvec = "1.0"
+static_prefs = { workspace = true }
+string_cache = { version = "0.9", optional = true }
+style_traits = { workspace = true }
+stylo_atoms = { workspace = true, optional = true }
+to_shmem = { workspace = true }
+to_shmem_derive = { workspace = true }
+url = { version = "2.5", optional = true, features = ["serde"] }
+web_atoms = { version = "0.2.0", optional = true }
+
+[build-dependencies]
+bindgen = { version = "0.69", optional = true, default-features = false }
+log = { version = "0.4", features = ["std"] }
+regex = { version = "1.0", optional = true, default-features = false, features = ["perf", "std"] }
+toml = { version = "0.5", optional = true, default-features = false }
+mozbuild = { version = "0.1", optional = true }
+stylo_build = { workspace = true, optional = true }

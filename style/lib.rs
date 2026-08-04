@@ -35,8 +35,7 @@ extern crate bitflags;
 #[cfg(feature = "gecko")]
 extern crate gecko_profiler;
 #[cfg(feature = "gecko")]
-#[macro_use]
-pub mod gecko_string_cache;
+pub use style_common::gecko_string_cache;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -78,12 +77,11 @@ pub mod device;
 pub mod dom;
 pub mod dom_apis;
 pub mod driver;
-pub mod error_reporting;
+pub use style_common::error_reporting;
 pub mod font_face;
 pub mod font_metrics;
 #[cfg(feature = "gecko")]
-#[allow(unsafe_code)]
-pub mod gecko_bindings;
+pub use style_common::gecko_bindings;
 pub mod global_style_data;
 pub mod invalidation;
 #[allow(missing_docs)] // TODO.
@@ -102,7 +100,7 @@ pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_map;
 pub mod selector_parser;
-pub mod shared_lock;
+pub use style_common::shared_lock;
 pub mod sharing;
 mod simple_buckets_map;
 pub mod str;
@@ -111,12 +109,12 @@ pub mod style_resolver;
 pub mod stylesheet_set;
 pub mod stylesheets;
 pub mod stylist;
-pub mod thread_state;
+pub use style_common::thread_state;
 pub mod traversal;
 pub mod traversal_flags;
 pub mod typed_om;
 pub mod url;
-pub mod use_counters;
+pub use style_common::use_counters;
 
 #[macro_use]
 #[allow(non_camel_case_types)]

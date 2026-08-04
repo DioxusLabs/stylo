@@ -28,6 +28,7 @@ gecko = [
     "regex",
     "serde",
     "style_traits/gecko",
+    "style_common/gecko",
     "toml",
     "selectors/to_shmem",
     "to_shmem/gecko",
@@ -43,13 +44,14 @@ servo = [
     "stylo_atoms",
     "string_cache",
     "style_traits/servo",
+    "style_common/servo",
     "url",
     "selectors/to_shmem",
     "to_shmem/servo",
 ]
-gecko_debug = []
-gecko_refcount_logging = []
-nsstring = []
+gecko_debug = ["style_common/gecko_debug"]
+gecko_refcount_logging = ["style_common/gecko_refcount_logging"]
+nsstring = ["style_common/nsstring"]
 
 [dependencies]
 app_units = "0.7.8"
@@ -94,6 +96,7 @@ strum = "0.28"
 strum_macros = "0.28"
 style_derive = { workspace = true }
 style_traits = { workspace = true }
+style_common = { workspace = true, default-features = false }
 to_shmem = { workspace = true}
 to_shmem_derive = { workspace = true }
 thin-vec = "0.2.1"

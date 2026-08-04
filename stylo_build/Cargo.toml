@@ -1,0 +1,24 @@
+[package]
+name = "stylo_build"
+version.workspace = true
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+repository = "https://github.com/servo/stylo"
+edition = "2021"
+description = "Build-time code generation for the Stylo CSS engine"
+readme = "../README.md"
+include = [
+    "/src",
+    "/*.py",
+    "/*.toml",
+    "/*.mako.rs",
+    "/*.mako",
+    "/helpers",
+    "/vendored_python",
+]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+walkdir = "2.1.4"

@@ -25,7 +25,7 @@ use crate::properties::{
 use std::ptr;
 use std::mem;
 use rustc_hash::FxHashMap;
-use super::ComputedValues;
+use super::{ComputedValues, LonghandIdExt};
 #[cfg(feature = "servo")] use crate::context::SharedStyleContext;
 use crate::derives::*;
 use crate::properties::OwnedPropertyDeclarationId;

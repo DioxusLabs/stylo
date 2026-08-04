@@ -649,7 +649,7 @@ pub mod ${property.ident} {
             input: &mut Parser<'i, 't>,
         ) -> Result<(), ParseError<'i>> {
             #[allow(unused_imports)]
-            use crate::properties::{NonCustomPropertyId, LonghandId};
+            use crate::properties::{NonCustomPropertyId, NonCustomPropertyIdExt, LonghandId};
             % if not shorthand.kind:
             use crate::properties::shorthands::${shorthand.ident}::parse_value;
             % endif

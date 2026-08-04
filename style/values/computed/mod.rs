@@ -831,6 +831,9 @@ trivial_to_computed_value!(Box<str>);
 trivial_to_computed_value!(crate::OwnedStr);
 trivial_to_computed_value!(style_traits::values::specified::AllowedNumericType);
 trivial_to_computed_value!(crate::values::generics::color::ColorMixFlags);
+trivial_to_computed_value!(crate::properties::NonCustomPropertyId);
+trivial_to_computed_value!(crate::properties::LonghandId);
+trivial_to_computed_value!(crate::properties::ShorthandId);
 
 #[allow(missing_docs)]
 #[derive(

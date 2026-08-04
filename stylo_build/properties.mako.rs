@@ -25,7 +25,7 @@ use crate::selector_parser::PseudoElement;
 use crate::stylist::Stylist;
 use style_traits::{CssStringWriter, CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use crate::derives::*;
-use crate::stylesheets::{CssRuleType, CssRuleTypes, Origin};
+use crate::stylesheets::Origin;
 use crate::logical_geometry::{LogicalAxis, LogicalCorner, LogicalSide};
 use crate::typed_om::{ToTyped, TypedValueList};
 use crate::use_counters::UseCounters;
@@ -37,10 +37,12 @@ use crate::values::{
 };
 use std::cell::Cell;
 use super::{
-    PropertyDeclarationId, PropertyId, NonCustomPropertyId,
-    NonCustomPropertyIdSet, PrioritaryPropertyIdSet, PropertyFlags, SourcePropertyDeclaration,
+    PropertyDeclarationId, PropertyId, NonCustomPropertyId, SourcePropertyDeclaration,
     LonghandIdSet, VariableDeclaration, CustomDeclaration,
-    WideKeywordDeclaration, NonCustomPropertyIterator, TransitionPropertyIterator,
+    WideKeywordDeclaration, TransitionPropertyIterator,
+};
+use style_traits::property_ids::{
+    property_counts, CountedUnknownProperty, IndexedId, LogicalGroupId, LonghandId, ShorthandId,
 };
 use debug_unreachable::debug_unreachable;
 
@@ -310,33 +312,6 @@ pub mod animated_properties {
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
-/// A module to group various interesting property counts.
-pub mod property_counts {
-    /// The number of (non-alias) longhand properties.
-    pub const LONGHANDS: usize = ${len(data.longhands)};
-    /// The number of (non-alias) shorthand properties.
-    pub const SHORTHANDS: usize = ${len(data.shorthands)};
-    /// The number of aliases.
-    pub const ALIASES: usize = ${len(data.all_aliases())};
-    /// The number of counted unknown properties.
-    pub const COUNTED_UNKNOWN: usize = ${len(data.counted_unknown_properties)};
-    /// The number of (non-alias) longhands and shorthands.
-    pub const LONGHANDS_AND_SHORTHANDS: usize = LONGHANDS + SHORTHANDS;
-    /// The number of non-custom properties.
-    pub const NON_CUSTOM: usize = LONGHANDS_AND_SHORTHANDS + ALIASES;
-    /// The number of prioritary properties that we have.
-    <% longhand_property_names = set(list(map(lambda p: p.name, data.longhands))) %>
-    <% enabled_prioritary_properties = PRIORITARY_PROPERTIES.intersection(longhand_property_names) %>
-    pub const PRIORITARY: usize = ${len(enabled_prioritary_properties)};
-    /// The max number of longhands that a shorthand other than "all" expands to.
-    pub const MAX_SHORTHAND_EXPANDED: usize =
-        ${max(len(s.sub_properties) for s in data.shorthands_except_all())};
-    /// The max amount of longhands that the `all` shorthand will ever contain.
-    pub const ALL_SHORTHAND_EXPANDED: usize = ${data.all_shorthand_length};
-    /// The number of animatable properties.
-    pub const ANIMATABLE: usize = ${sum(1 for prop in data.longhands if prop.animatable)};
-}
-
 % if engine == "gecko":
 #[allow(dead_code)]
 unsafe fn static_assert_noncustomcsspropertyid() {
@@ -345,169 +320,6 @@ unsafe fn static_assert_noncustomcsspropertyid() {
     % endfor
 }
 % endif
-
-impl NonCustomPropertyId {
-    /// Get the property name.
-    #[inline]
-    pub fn name(self) -> &'static str {
-        static MAP: [&'static str; property_counts::NON_CUSTOM] = [
-            % for property in data.longhands + data.shorthands + data.all_aliases():
-            "${property.name}",
-            % endfor
-        ];
-        MAP[self.0 as usize]
-    }
-
-    /// Returns whether this property is animatable.
-    #[inline]
-    pub fn is_animatable(self) -> bool {
-        static ANIMATABLE: NonCustomPropertyIdSet =
-            ${non_custom_property_id_set(lambda p: p.animatable)};
-        ANIMATABLE.contains(self)
-    }
-
-    /// Whether this property is enabled for all content right now.
-    #[inline]
-    pub(super) fn enabled_for_all_content(self) -> bool {
-        static EXPERIMENTAL: NonCustomPropertyIdSet = ${non_custom_property_id_set(lambda p: p.experimental(engine))};
-        static ALWAYS_ENABLED: NonCustomPropertyIdSet = ${non_custom_property_id_set(
-            lambda p: (not p.experimental(engine)) and p.enabled_in_content()
-        )};
-
-        let passes_pref_check = || {
-            % if engine == "gecko":
-                unsafe { structs::nsCSSProps_gPropertyEnabled[self.0 as usize] }
-            % else:
-                match self.0 {
-                % for (index, property) in enumerate(data.longhands + data.shorthands + data.all_aliases()):
-                    <% preference = getattr(property, "servo_pref") %>
-                    % if preference:
-                        ${index} => static_prefs::pref!("${preference}"),
-                    % endif %
-                % endfor
-                    _ => true,
-                }
-            % endif
-        };
-
-        if ALWAYS_ENABLED.contains(self) {
-            return true
-        }
-
-        if EXPERIMENTAL.contains(self) && passes_pref_check() {
-            return true
-        }
-
-        false
-    }
-
-    /// Returns whether a given rule allows a given property.
-    #[inline]
-    pub fn allowed_in_rule(self, rule_types: CssRuleTypes) -> bool {
-        debug_assert!(
-            rule_types.contains(CssRuleType::Keyframe) ||
-            rule_types.contains(CssRuleType::Page) ||
-            rule_types.contains(CssRuleType::Style) ||
-            rule_types.contains(CssRuleType::Scope) ||
-            rule_types.contains(CssRuleType::PositionTry),
-            "Given rule type does not allow declarations."
-        );
-
-        static MAP: [u32; property_counts::NON_CUSTOM] = [
-            % for property in data.longhands + data.shorthands + data.all_aliases():
-            % for name in RULE_VALUES:
-            % if property.rule_types_allowed & RULE_VALUES[name] != 0:
-            CssRuleType::${to_camel_case(name)}.bit() |
-            % endif
-            % endfor
-            0,
-            % endfor
-        ];
-        MAP[self.0 as usize] & rule_types.bits() != 0
-    }
-
-    pub(super) fn allowed_in(self, context: &ParserContext) -> bool {
-        if !self.allowed_in_rule(context.rule_types()) {
-            return false;
-        }
-
-        self.allowed_in_ignoring_rule_type(context)
-    }
-
-
-    pub(super) fn allowed_in_ignoring_rule_type(self, context: &ParserContext) -> bool {
-        // The semantics of these are kinda hard to reason about, what follows
-        // is a description of the different combinations that can happen with
-        // these three sets.
-        //
-        // Experimental properties are generally controlled by prefs, but an
-        // experimental property explicitly enabled in certain context (UA or
-        // chrome sheets) is always usable in the context regardless of the
-        // pref value.
-        //
-        // Non-experimental properties are either normal properties which are
-        // usable everywhere, or internal-only properties which are only usable
-        // in certain context they are explicitly enabled in.
-        if self.enabled_for_all_content() {
-            return true;
-        }
-        static ENABLED_IN_UA_SHEETS: NonCustomPropertyIdSet = ${non_custom_property_id_set(
-            lambda p: p.explicitly_enabled_in_ua_sheets()
-        )};
-        static ENABLED_IN_CHROME: NonCustomPropertyIdSet = ${non_custom_property_id_set(
-            lambda p: p.explicitly_enabled_in_chrome()
-        )};
-        if context.stylesheet_origin == Origin::UserAgent &&
-            ENABLED_IN_UA_SHEETS.contains(self)
-        {
-            return true
-        }
-
-        if context.chrome_rules_enabled() && ENABLED_IN_CHROME.contains(self) {
-            return true
-        }
-
-        false
-    }
-
-    /// The supported types of this property. The return value should be
-    /// style_traits::CssType when it can become a bitflags type.
-    pub(super) fn supported_types(&self) -> u8 {
-        const SUPPORTED_TYPES: [u8; property_counts::LONGHANDS_AND_SHORTHANDS] = [
-            % for prop in data.longhands:
-                <${prop.specified_type()} as SpecifiedValueInfo>::SUPPORTED_TYPES,
-            % endfor
-            % for prop in data.shorthands:
-            % if prop.name == "all":
-                0, // 'all' accepts no value other than CSS-wide keywords
-            % else:
-                <shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::SUPPORTED_TYPES,
-            % endif
-            % endfor
-        ];
-        SUPPORTED_TYPES[self.0 as usize]
-    }
-
-    /// See PropertyId::collect_property_completion_keywords.
-    pub(super) fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
-        fn do_nothing(_: KeywordsCollectFn) {}
-        const COLLECT_FUNCTIONS: [fn(KeywordsCollectFn);
-                                  property_counts::LONGHANDS_AND_SHORTHANDS] = [
-            % for prop in data.longhands:
-                <${prop.specified_type()} as SpecifiedValueInfo>::collect_completion_keywords,
-            % endfor
-            % for prop in data.shorthands:
-            % if prop.name == "all":
-                do_nothing, // 'all' accepts no value other than CSS-wide keywords
-            % else:
-                <shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::
-                    collect_completion_keywords,
-            % endif
-            % endfor
-        ];
-        COLLECT_FUNCTIONS[self.0 as usize](f);
-    }
-}
 
 <%def name="id_set(set_type, ids, is_member)">
 <%
@@ -531,271 +343,6 @@ ${id_set("LonghandIdSet", data.longhands, is_member)}
 ${id_set("PrioritaryPropertyIdSet", [p for p in data.longhands if p.is_prioritary()], is_member)}
 </%def>
 
-<%
-    FIRST_LINE_RESTRICTIONS = PropertyRestrictions.first_line(data)
-    FIRST_LETTER_RESTRICTIONS = PropertyRestrictions.first_letter(data)
-    MARKER_RESTRICTIONS = PropertyRestrictions.marker(data)
-    PLACEHOLDER_RESTRICTIONS = PropertyRestrictions.placeholder(data)
-    CUE_RESTRICTIONS = PropertyRestrictions.cue(data)
-
-    def restriction_flags(property):
-        name = property.name
-        flags = []
-        if name in FIRST_LINE_RESTRICTIONS:
-            flags.append("APPLIES_TO_FIRST_LINE")
-        if name in FIRST_LETTER_RESTRICTIONS:
-            flags.append("APPLIES_TO_FIRST_LETTER")
-        if name in PLACEHOLDER_RESTRICTIONS:
-            flags.append("APPLIES_TO_PLACEHOLDER")
-        if name in MARKER_RESTRICTIONS:
-            flags.append("APPLIES_TO_MARKER")
-        if name in CUE_RESTRICTIONS:
-            flags.append("APPLIES_TO_CUE")
-        return flags
-
-%>
-
-/// A group for properties which may override each other via logical resolution.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[repr(u8)]
-pub enum LogicalGroupId {
-    % for i, group in enumerate(data.logical_groups.keys()):
-    /// ${group}
-    ${to_camel_case(group)} = ${i},
-    % endfor
-}
-
-impl LogicalGroupId {
-    /// Return the list of physical mapped properties for a given logical group.
-    fn physical_properties(self) -> &'static [LonghandId] {
-        static PROPS: [[LonghandId; 4]; ${len(data.logical_groups)}] = [
-        % for group, props in data.logical_groups.items():
-        [
-            <% physical_props = [p for p in props if p.logical][0].all_physical_mapped_properties(data) %>
-            % for phys in physical_props:
-            LonghandId::${phys.camel_case},
-            % endfor
-            % for i in range(len(physical_props), 4):
-            LonghandId::${physical_props[0].camel_case},
-            % endfor
-        ],
-        % endfor
-        ];
-        &PROPS[self as usize]
-    }
-}
-
-/// A set of logical groups.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
-pub struct LogicalGroupSet {
-    storage: [u32; (${len(data.logical_groups)} - 1 + 32) / 32]
-}
-
-impl LogicalGroupSet {
-    /// Creates an empty `NonCustomPropertyIdSet`.
-    pub fn new() -> Self {
-        Self {
-            storage: Default::default(),
-        }
-    }
-
-    /// Return whether the given group is in the set
-    #[inline]
-    pub fn contains(&self, g: LogicalGroupId) -> bool {
-        let bit = g as usize;
-        (self.storage[bit / 32] & (1 << (bit % 32))) != 0
-    }
-
-    /// Insert a group the set.
-    #[inline]
-    pub fn insert(&mut self, g: LogicalGroupId) {
-        let bit = g as usize;
-        self.storage[bit / 32] |= 1 << (bit % 32);
-    }
-}
-
-
-/// An id of a property that can be depended on by other properties.
-#[repr(u8)]
-#[derive(Copy, Clone, Debug)]
-#[allow(missing_docs)]
-pub enum PrioritaryPropertyId {
-    % for p in data.longhands:
-    % if p.is_prioritary():
-    ${p.camel_case},
-    % endif
-    % endfor
-}
-
-impl PrioritaryPropertyId {
-    /// Iterates over all prioritary properties, in declaration (longhand) order.
-    #[inline]
-    pub fn each() -> impl Iterator<Item = Self> {
-        // Safe because `PrioritaryPropertyId` is `#[repr(u8)]` with contiguous discriminants in
-        // `0..property_counts::PRIORITARY`.
-        (0..property_counts::PRIORITARY as u8).map(|i| unsafe { std::mem::transmute::<u8, Self>(i) })
-    }
-
-    /// Converts a PrioritaryPropertyId to a LonghandId.
-    #[inline]
-    pub fn to_longhand(self) -> LonghandId {
-        static PRIORITARY_TO_LONGHAND: [LonghandId; property_counts::PRIORITARY] = [
-        % for p in data.longhands:
-        % if p.is_prioritary():
-            LonghandId::${p.camel_case},
-        % endif
-        % endfor
-        ];
-        PRIORITARY_TO_LONGHAND[self as usize]
-    }
-
-    /// Converts a LonghandId to a PrioritaryPropertyId.
-    #[inline]
-    pub fn from_longhand(l: LonghandId) -> Option<Self> {
-        static LONGHAND_TO_PRIORITARY: [Option<PrioritaryPropertyId>; property_counts::LONGHANDS] = [
-        % for p in data.longhands:
-        % if p.is_prioritary():
-            Some(PrioritaryPropertyId::${p.camel_case}),
-        % else:
-            None,
-        % endif
-        % endfor
-        ];
-        LONGHAND_TO_PRIORITARY[l as usize]
-    }
-
-    /// Returns the set of prioritary properties that must be applied before
-    /// this one, i.e. the properties it depends on.
-    #[inline]
-    pub fn dependencies(self) -> &'static PrioritaryPropertyIdSet {
-        static DEPENDENCIES: [PrioritaryPropertyIdSet; property_counts::PRIORITARY] = [
-        % for p in data.longhands:
-        % if p.is_prioritary():
-            ${prioritary_property_id_set(
-                lambda dep, p=p: dep.name in PRIORITARY_PROPERTY_DEPENDENCIES[p.name]
-            )},
-        % endif
-        % endfor
-        ];
-        &DEPENDENCIES[self as usize]
-    }
-}
-
-impl LonghandIdSet {
-    /// The set of non-inherited longhands.
-    #[inline]
-    pub(super) fn reset() -> &'static Self {
-        static RESET: LonghandIdSet = ${longhand_id_set(lambda p: not p.style_struct.inherited)};
-        &RESET
-    }
-
-    #[inline]
-    pub(super) fn discrete_animatable() -> &'static Self {
-        static DISCRETE_ANIMATABLE: LonghandIdSet = ${longhand_id_set(lambda p: p.animation_type == "discrete")};
-        &DISCRETE_ANIMATABLE
-    }
-
-    #[inline]
-    pub(super) fn logical() -> &'static Self {
-        static LOGICAL: LonghandIdSet = ${longhand_id_set(lambda p: p.logical)};
-        &LOGICAL
-    }
-
-    /// Returns the set of longhands that are ignored when document colors are
-    /// disabled.
-    #[inline]
-    pub(super) fn ignored_when_colors_disabled() -> &'static Self {
-        static IGNORED_WHEN_COLORS_DISABLED: LonghandIdSet = ${longhand_id_set(lambda p: p.ignored_when_colors_disabled)};
-        &IGNORED_WHEN_COLORS_DISABLED
-    }
-
-    /// Only a few properties are allowed to depend on the visited state of links. When cascading
-    /// visited styles, we can save time by only processing these properties.
-    pub(super) fn visited_dependent() -> &'static Self {
-        static VISITED_DEPENDENT: LonghandIdSet = ${longhand_id_set(lambda p: p.is_visited_dependent())};
-        debug_assert!(Self::late_group().contains_all(&VISITED_DEPENDENT));
-        &VISITED_DEPENDENT
-    }
-
-    #[inline]
-    pub(super) fn prioritary_properties() -> &'static Self {
-        static PRIORITARY: LonghandIdSet = ${longhand_id_set(lambda p: p.is_prioritary())};
-        &PRIORITARY
-    }
-
-    #[inline]
-    pub(super) fn late_group_only_inherited() -> &'static Self {
-        static LATE_GROUP_ONLY_INHERITED: LonghandIdSet = ${longhand_id_set(lambda p: p.style_struct.inherited and not p.is_prioritary())};
-        &LATE_GROUP_ONLY_INHERITED
-    }
-
-    #[inline]
-    pub(super) fn late_group() -> &'static Self {
-        static LATE_GROUP: LonghandIdSet = ${longhand_id_set(lambda p: not p.is_prioritary())};
-        &LATE_GROUP
-    }
-
-    /// Returns the set of properties that are declared as having no effect on
-    /// Gecko <scrollbar> elements or their descendant scrollbar parts.
-    #[cfg(debug_assertions)]
-    #[cfg(feature = "gecko")]
-    #[inline]
-    pub fn has_no_effect_on_gecko_scrollbars() -> &'static Self {
-        // data.py asserts that has_no_effect_on_gecko_scrollbars is True or
-        // False for properties that are inherited and Gecko pref controlled,
-        // and is None for all other properties.
-        static HAS_NO_EFFECT_ON_SCROLLBARS: LonghandIdSet = ${longhand_id_set(
-            lambda p: p.has_effect_on_gecko_scrollbars is False
-        )};
-        &HAS_NO_EFFECT_ON_SCROLLBARS
-    }
-
-    /// Returns the set of margin properties, for the purposes of <h1> use counters / warnings.
-    #[inline]
-    pub fn margin_properties() -> &'static Self {
-        static MARGIN_PROPERTIES: LonghandIdSet = ${longhand_id_set(lambda p: p.logical_group == "margin")};
-        &MARGIN_PROPERTIES
-    }
-
-    /// Returns the set of border properties for the purpose of disabling native
-    /// appearance.
-    #[inline]
-    pub fn border_background_properties() -> &'static Self {
-        static BORDER_BACKGROUND_PROPERTIES: LonghandIdSet = ${longhand_id_set(
-            lambda p: (p.logical_group and p.logical_group.startswith("border")) or \
-                        p in data.shorthands_by_name["border"].sub_properties or \
-                        p in data.shorthands_by_name["background"].sub_properties and \
-                        p.name not in ["background-blend-mode", "background-repeat"]
-        )};
-        &BORDER_BACKGROUND_PROPERTIES
-    }
-
-    /// Returns properties that are zoom dependent (basically, that contain lengths).
-    #[inline]
-    pub fn zoom_dependent() -> &'static Self {
-        static ZOOM_DEPENDENT: LonghandIdSet = ${longhand_id_set(lambda p: p.is_zoom_dependent())};
-        &ZOOM_DEPENDENT
-    }
-
-    /// Note that it's different from zoom_dependent(), as this only includes inherited, physical
-    /// properties.
-    #[inline]
-    pub fn zoom_dependent_inherited_properties() -> &'static Self {
-        static ZOOM_DEPENDENT_INHERITED: LonghandIdSet = ${longhand_id_set(lambda p: p.is_inherited_zoom_dependent_property())};
-        &ZOOM_DEPENDENT_INHERITED
-    }
-}
-
-/// An identifier for a given longhand property.
-#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
-#[repr(u16)]
-pub enum LonghandId {
-    % for i, property in enumerate(data.longhands):
-        /// ${property.name}
-        ${property.camel_case} = ${i},
-    % endfor
-}
-
 enum LogicalMappingKind {
     Side(LogicalSide),
     Corner(LogicalCorner),
@@ -818,62 +365,128 @@ impl LogicalMappingData {
     }
 }
 
-impl LonghandId {
-    /// Returns an iterator over all the shorthands that include this longhand.
-    pub fn shorthands(self) -> NonCustomPropertyIterator<ShorthandId> {
-        // first generate longhand to shorthands lookup map
-        //
-        // NOTE(emilio): This currently doesn't exclude the "all" shorthand. It
-        // could potentially do so, which would speed up serialization
-        // algorithms and what not, I guess.
-        <%
-            from functools import cmp_to_key
-            longhand_to_shorthand_map = {}
-            num_sub_properties = {}
-            for shorthand in data.shorthands:
-                num_sub_properties[shorthand.camel_case] = len(shorthand.sub_properties)
-                for sub_property in shorthand.sub_properties:
-                    if sub_property.ident not in longhand_to_shorthand_map:
-                        longhand_to_shorthand_map[sub_property.ident] = []
+/// Methods on `NonCustomPropertyId` that depend on the parser context or the
+/// specified value types, which live in this crate.
+pub trait NonCustomPropertyIdExt {
+    /// Returns whether the property is allowed in the given parser context.
+    fn allowed_in(self, context: &ParserContext) -> bool;
+    /// Like `allowed_in`, but ignoring the rule type.
+    fn allowed_in_ignoring_rule_type(self, context: &ParserContext) -> bool;
+    /// The supported types of this property. The return value should be
+    /// style_traits::CssType when it can become a bitflags type.
+    fn supported_types(self) -> u8;
+    /// See PropertyId::collect_property_completion_keywords.
+    fn collect_property_completion_keywords(self, f: KeywordsCollectFn);
+}
 
-                    longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
-
-            def cmp(a, b):
-                return (a > b) - (a < b)
-
-            def preferred_order(x, y):
-                # Since we want properties in order from most subproperties to least,
-                # reverse the arguments to cmp from the expected order.
-                result = cmp(num_sub_properties.get(y, 0), num_sub_properties.get(x, 0))
-                if result:
-                    return result
-                # Fall back to lexicographic comparison.
-                return cmp(x, y)
-
-            # Sort the lists of shorthand properties according to preferred order:
-            # https://drafts.csswg.org/cssom/#concept-shorthands-preferred-order
-            for shorthand_list in longhand_to_shorthand_map.values():
-                shorthand_list.sort(key=cmp_to_key(preferred_order))
-        %>
-
-        // based on lookup results for each longhand, create result arrays
-        static MAP: [&'static [ShorthandId]; property_counts::LONGHANDS] = [
-        % for property in data.longhands:
-            &[
-                % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
-                    ShorthandId::${shorthand},
-                % endfor
-            ],
-        % endfor
-        ];
-
-        NonCustomPropertyIterator {
-            filter: NonCustomPropertyId::from(self).enabled_for_all_content(),
-            iter: MAP[self as usize].iter(),
+impl NonCustomPropertyIdExt for NonCustomPropertyId {
+    fn allowed_in(self, context: &ParserContext) -> bool {
+        if !self.allowed_in_rule(context.rule_types()) {
+            return false;
         }
+
+        self.allowed_in_ignoring_rule_type(context)
     }
 
-    pub(super) fn parse_value<'i, 't>(
+    fn allowed_in_ignoring_rule_type(self, context: &ParserContext) -> bool {
+        // The semantics of these are kinda hard to reason about, what follows
+        // is a description of the different combinations that can happen with
+        // these three sets.
+        //
+        // Experimental properties are generally controlled by prefs, but an
+        // experimental property explicitly enabled in certain context (UA or
+        // chrome sheets) is always usable in the context regardless of the
+        // pref value.
+        //
+        // Non-experimental properties are either normal properties which are
+        // usable everywhere, or internal-only properties which are only usable
+        // in certain context they are explicitly enabled in.
+        if self.enabled_for_all_content() {
+            return true;
+        }
+
+        if context.stylesheet_origin == Origin::UserAgent &&
+            self.explicitly_enabled_in_ua_sheets()
+        {
+            return true
+        }
+
+        if context.chrome_rules_enabled() && self.explicitly_enabled_in_chrome() {
+            return true
+        }
+
+        false
+    }
+
+    fn supported_types(self) -> u8 {
+        const SUPPORTED_TYPES: [u8; property_counts::LONGHANDS_AND_SHORTHANDS] = [
+            % for prop in data.longhands:
+                <${prop.specified_type()} as SpecifiedValueInfo>::SUPPORTED_TYPES,
+            % endfor
+            % for prop in data.shorthands:
+            % if prop.name == "all":
+                0, // 'all' accepts no value other than CSS-wide keywords
+            % else:
+                <shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::SUPPORTED_TYPES,
+            % endif
+            % endfor
+        ];
+        SUPPORTED_TYPES[self.to_index()]
+    }
+
+    fn collect_property_completion_keywords(self, f: KeywordsCollectFn) {
+        fn do_nothing(_: KeywordsCollectFn) {}
+        const COLLECT_FUNCTIONS: [fn(KeywordsCollectFn);
+                                  property_counts::LONGHANDS_AND_SHORTHANDS] = [
+            % for prop in data.longhands:
+                <${prop.specified_type()} as SpecifiedValueInfo>::collect_completion_keywords,
+            % endfor
+            % for prop in data.shorthands:
+            % if prop.name == "all":
+                do_nothing, // 'all' accepts no value other than CSS-wide keywords
+            % else:
+                <shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::
+                    collect_completion_keywords,
+            % endif
+            % endfor
+        ];
+        COLLECT_FUNCTIONS[self.to_index()](f);
+    }
+}
+
+/// Return the relevant data to map a particular logical property into physical.
+fn logical_mapping_data(id: LonghandId) -> Option<&'static LogicalMappingData> {
+    const LOGICAL_MAPPING_DATA: [Option<LogicalMappingData>; property_counts::LONGHANDS] = [
+        % for prop in data.longhands:
+        % if prop.logical:
+        Some(LogicalMappingData {
+            group: LogicalGroupId::${to_camel_case(prop.logical_group)},
+            kind: ${prop.logical_mapping_kind(data)}
+        }),
+        % else:
+        None,
+        % endif
+        % endfor
+    ];
+    LOGICAL_MAPPING_DATA[id as usize].as_ref()
+}
+
+/// Methods on `LonghandId` that depend on the parser context or on
+/// `WritingMode`, which live in this crate.
+pub trait LonghandIdExt {
+    /// Parses a declared value for this longhand.
+    fn parse_value<'i, 't>(
+        self,
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<PropertyDeclaration, ParseError<'i>>;
+    /// If this is a logical property, return the corresponding physical one in
+    /// the given writing mode. Otherwise, return unchanged.
+    fn to_physical(self, wm: WritingMode) -> Self;
+}
+
+impl LonghandIdExt for LonghandId {
+    fn parse_value<'i, 't>(
         self,
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -890,94 +503,37 @@ impl LonghandId {
         (PARSE_PROPERTY[self as usize])(context, input)
     }
 
-    /// Return the relevant data to map a particular logical property into physical.
-    fn logical_mapping_data(self) -> Option<&'static LogicalMappingData> {
-        const LOGICAL_MAPPING_DATA: [Option<LogicalMappingData>; property_counts::LONGHANDS] = [
-            % for prop in data.longhands:
-            % if prop.logical:
-            Some(LogicalMappingData {
-                group: LogicalGroupId::${to_camel_case(prop.logical_group)},
-                kind: ${prop.logical_mapping_kind(data)}
-            }),
-            % else:
-            None,
-            % endif
-            % endfor
-        ];
-        LOGICAL_MAPPING_DATA[self as usize].as_ref()
-    }
-
-    /// If this is a logical property, return the corresponding physical one in the given
-    /// writing mode. Otherwise, return unchanged.
     #[inline]
-    pub fn to_physical(self, wm: WritingMode) -> Self {
-        let Some(data) = self.logical_mapping_data() else { return self };
+    fn to_physical(self, wm: WritingMode) -> Self {
+        let Some(data) = logical_mapping_data(self) else { return self };
         data.to_physical(wm)
     }
-
-    /// Return the logical group of this longhand property.
-    pub fn logical_group(self) -> Option<LogicalGroupId> {
-        const LOGICAL_GROUP_IDS: [Option<LogicalGroupId>; property_counts::LONGHANDS] = [
-            % for prop in data.longhands:
-            % if prop.logical_group:
-            Some(LogicalGroupId::${to_camel_case(prop.logical_group)}),
-            % else:
-            None,
-            % endif
-            % endfor
-        ];
-        LOGICAL_GROUP_IDS[self as usize]
-    }
-
-    /// Returns PropertyFlags for given longhand property.
-    #[inline(always)]
-    pub fn flags(self) -> PropertyFlags {
-        const FLAGS: [PropertyFlags; property_counts::LONGHANDS] = [
-            % for property in data.longhands:
-                PropertyFlags::empty()
-                % for flag in property.flags + restriction_flags(property):
-                    .union(PropertyFlags::${flag})
-                % endfor
-                ,
-            % endfor
-        ];
-        FLAGS[self as usize]
-    }
 }
 
-/// An identifier for a given shorthand property.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
-#[repr(u16)]
-pub enum ShorthandId {
-    % for i, property in enumerate(data.shorthands):
-        /// ${property.name}
-        ${property.camel_case} = ${i},
-    % endfor
-}
-
-impl ShorthandId {
-    /// Get the longhand ids that form this shorthand.
-    pub fn longhands(self) -> NonCustomPropertyIterator<LonghandId> {
-        static MAP: [&'static [LonghandId]; property_counts::SHORTHANDS] = [
-        % for property in data.shorthands:
-            &[
-                % for sub in property.sub_properties:
-                    LonghandId::${sub.camel_case},
-                % endfor
-            ],
-        % endfor
-        ];
-        NonCustomPropertyIterator {
-            filter: NonCustomPropertyId::from(self).enabled_for_all_content(),
-            iter: MAP[self as usize].iter(),
-        }
-    }
-
+/// Methods on `ShorthandId` that depend on the parser context or on
+/// `PropertyDeclaration`, which live in this crate.
+pub trait ShorthandIdExt {
     /// Try to serialize the given declarations as this shorthand.
     ///
     /// Returns an error if writing to the stream fails, or if the declarations
     /// do not map to a shorthand.
-    pub fn longhands_to_css(
+    fn longhands_to_css(
+        self,
+        declarations: &[&PropertyDeclaration],
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result;
+    /// Parses this shorthand's value from the given input, pushing the
+    /// resulting longhand declarations into `declarations`.
+    fn parse_into<'i, 't>(
+        self,
+        declarations: &mut SourcePropertyDeclaration,
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(), ParseError<'i>>;
+}
+
+impl ShorthandIdExt for ShorthandId {
+    fn longhands_to_css(
         self,
         declarations: &[&PropertyDeclaration],
         dest: &mut CssStringWriter,
@@ -1004,40 +560,7 @@ impl ShorthandId {
         LONGHANDS_TO_CSS[self as usize](declarations, dest)
     }
 
-    /// Returns PropertyFlags for the given shorthand property.
-    #[inline]
-    pub fn flags(self) -> PropertyFlags {
-        const FLAGS: [u16; property_counts::SHORTHANDS] = [
-            % for property in data.shorthands:
-                % for flag in property.flags:
-                    PropertyFlags::${flag}.bits() |
-                % endfor
-                0,
-            % endfor
-        ];
-        PropertyFlags::from_bits_retain(FLAGS[self as usize])
-    }
-
-    /// Returns the order in which this property appears relative to other
-    /// shorthands in idl-name-sorting order.
-    #[inline]
-    pub fn idl_name_sort_order(self) -> u32 {
-        <%
-            from data import to_idl_name
-            ordered = {}
-            sorted_shorthands = sorted(data.shorthands, key=lambda p: to_idl_name(p.ident))
-            for order, shorthand in enumerate(sorted_shorthands):
-                ordered[shorthand.ident] = order
-        %>
-        static IDL_NAME_SORT_ORDER: [u32; property_counts::SHORTHANDS] = [
-            % for property in data.shorthands:
-            ${ordered[property.ident]},
-            % endfor
-        ];
-        IDL_NAME_SORT_ORDER[self as usize]
-    }
-
-    pub(super) fn parse_into<'i, 't>(
+    fn parse_into<'i, 't>(
         self,
         declarations: &mut SourcePropertyDeclaration,
         context: &ParserContext,
@@ -1072,39 +595,6 @@ impl ShorthandId {
     }
 }
 
-/// The counted unknown property list which is used for css use counters.
-///
-/// FIXME: This should be just #[repr(u8)], but can't be because of ABI issues,
-/// see https://bugs.llvm.org/show_bug.cgi?id=44228.
-#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
-#[repr(u32)]
-pub enum CountedUnknownProperty {
-    % for prop in data.counted_unknown_properties:
-    /// ${prop.name}
-    ${prop.camel_case},
-    % endfor
-}
-
-impl CountedUnknownProperty {
-    /// Parse the counted unknown property, for testing purposes only.
-    pub fn parse_for_testing(property_name: &str) -> Option<Self> {
-        ::cssparser::ascii_case_insensitive_phf_map! {
-            unknown_ids -> CountedUnknownProperty = {
-                % for property in data.counted_unknown_properties:
-                "${property.name}" => CountedUnknownProperty::${property.camel_case},
-                % endfor
-            }
-        }
-        unknown_ids::get(property_name).cloned()
-    }
-
-    /// Returns the underlying index, used for use counter.
-    #[inline]
-    pub fn bit(self) -> usize {
-        self as usize
-    }
-}
-
 impl PropertyId {
     /// Returns a given property from the given name, _regardless of whether it
     /// is enabled or not_, or Err(()) for unknown properties.
@@ -1121,7 +611,7 @@ impl PropertyId {
         ::cssparser::ascii_case_insensitive_phf_map! {
             static_ids -> StaticId = {
                 % for i, property in enumerate(data.longhands + data.shorthands + data.all_aliases()):
-                "${property.name}" => StaticId::NonCustom(NonCustomPropertyId(${i})),
+                "${property.name}" => StaticId::NonCustom(NonCustomPropertyId::from_index(${i})),
                 % endfor
                 % for property in data.counted_unknown_properties:
                 "${property.name}" => {
@@ -2751,41 +2241,6 @@ pub static CASCADE_PROPERTY: [CascadePropertyFn; property_counts::LONGHANDS] = [
         longhands::${property.ident}::cascade_property,
     % endfor
 ];
-
-/// An identifier for a given alias property.
-#[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
-#[repr(u16)]
-pub enum AliasId {
-    % for i, property in enumerate(data.all_aliases()):
-        /// ${property.name}
-        ${property.camel_case} = ${i},
-    % endfor
-}
-
-impl fmt::Debug for AliasId {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let name = NonCustomPropertyId::from(*self).name();
-        formatter.write_str(name)
-    }
-}
-
-impl AliasId {
-    /// Returns the property we're aliasing, as a longhand or a shorthand.
-    #[inline]
-    pub fn aliased_property(self) -> NonCustomPropertyId {
-        static MAP: [NonCustomPropertyId; property_counts::ALIASES] = [
-        % for alias in data.all_aliases():
-            % if alias.original.type() == "longhand":
-            NonCustomPropertyId::from_longhand(LonghandId::${alias.original.camel_case}),
-            % else:
-            <% assert alias.original.type() == "shorthand" %>
-            NonCustomPropertyId::from_shorthand(ShorthandId::${alias.original.camel_case}),
-            % endif
-        % endfor
-        ];
-        MAP[self as usize]
-    }
-}
 
 /// Call the given macro with tokens like this for each longhand and shorthand properties
 /// that is enabled in content:

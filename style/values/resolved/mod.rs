@@ -106,6 +106,9 @@ trivial_to_resolved_value!(crate::Namespace);
 trivial_to_resolved_value!(crate::Prefix);
 trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);
 trivial_to_resolved_value!(computed::TimingFunction);
+trivial_to_resolved_value!(crate::properties::NonCustomPropertyId);
+trivial_to_resolved_value!(crate::properties::LonghandId);
+trivial_to_resolved_value!(crate::properties::ShorthandId);
 
 impl ToResolvedValue for Au {
     type ResolvedValue = Length;

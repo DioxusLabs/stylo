@@ -20,20 +20,12 @@ use selectors::matching::{matches_selector, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::collections::hash_map;
-use std::collections::{HashMap, HashSet};
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::collections::HashMap;
+use std::hash::Hash;
 
-/// A hasher implementation that doesn't hash anything, because it expects its
-/// input to be a suitable u32 hash.
-pub struct PrecomputedHasher {
-    hash: Option<u32>,
-}
-
-impl Default for PrecomputedHasher {
-    fn default() -> Self {
-        Self { hash: None }
-    }
-}
+pub use style_traits::precomputed_hash::{
+    PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher,
+};
 
 /// A vector of relevant attributes, that can be useful for revalidation.
 pub type RelevantAttributes = thin_vec::ThinVec<LocalName>;
@@ -57,33 +49,6 @@ const RARE_PSEUDO_CLASS_STATES: ElementState = ElementState::from_bits_retain(
         | ElementState::ACTIVE_VIEW_TRANSITION.bits()
         | ElementState::HEADING_LEVEL_BITS.bits(),
 );
-
-/// A simple alias for a hashmap using PrecomputedHasher.
-pub type PrecomputedHashMap<K, V> = HashMap<K, V, BuildHasherDefault<PrecomputedHasher>>;
-
-/// A simple alias for a hashset using PrecomputedHasher.
-pub type PrecomputedHashSet<K> = HashSet<K, BuildHasherDefault<PrecomputedHasher>>;
-
-impl Hasher for PrecomputedHasher {
-    #[inline]
-    fn write(&mut self, _: &[u8]) {
-        unreachable!(
-            "Called into PrecomputedHasher with something that isn't \
-             a u32"
-        )
-    }
-
-    #[inline]
-    fn write_u32(&mut self, i: u32) {
-        debug_assert!(self.hash.is_none());
-        self.hash = Some(i);
-    }
-
-    #[inline]
-    fn finish(&self) -> u64 {
-        self.hash.expect("PrecomputedHasher wasn't fed?") as u64
-    }
-}
 
 /// A trait to abstract over a given selector map entry.
 pub trait SelectorMapEntry: Sized + Clone {

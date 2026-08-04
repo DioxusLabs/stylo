@@ -14,7 +14,9 @@ use crate::custom_properties::{
     ComputedCustomProperties, ComputedSubstitutionFunctions, Name, NonCustomReferenceMap,
     ReferenceFlags, References, SingleNonCustomReference, SubstitutionFunctionKind, VariableValue,
 };
-use crate::dom::{AttributeTracker, DummyElementContext, ElementContext, TElement};
+use crate::dom::{
+    AttributeTracker, DummyElementContext, ElementContext, TElement, TElementContext,
+};
 #[cfg(feature = "gecko")]
 use crate::font_metrics::FontMetricsOrientation;
 use crate::properties::{
@@ -309,8 +311,12 @@ where
         ContainerSizeQuery::for_option_element(element, Some(inherited_style), pseudo.is_some());
 
     let originating_element = element.map(|e| e.ultimate_originating_element());
+    let wrapper;
     let element_context = match originating_element {
-        Some(ref e) => e as &dyn ElementContext,
+        Some(e) => {
+            wrapper = TElementContext(e);
+            &wrapper as &dyn ElementContext
+        },
         None => &DummyElementContext {},
     };
 

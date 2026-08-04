@@ -10,7 +10,6 @@
 use crate::color::mix::ColorInterpolationMethod;
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
-use crate::stylesheets::CorsMode;
 use crate::typed_om::{ImageValue, KeywordValue, ToTyped, TypedValue};
 use crate::values::generics::color::{ColorMixFlags, GenericLightDark};
 use crate::values::generics::image::{
@@ -32,6 +31,7 @@ use cssparser::{match_ignore_ascii_case, Delimiter, Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
 use std::cmp::Ordering;
 use std::fmt::{self, Write};
+use style_traits::rule_types::CorsMode;
 use style_traits::{CssString, CssType, CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use thin_vec::ThinVec;

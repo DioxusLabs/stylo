@@ -5,8 +5,8 @@
 //! Specified types for text properties.
 
 use crate::derives::*;
+use crate::logical_geometry::WritingModeProperty as SpecifiedWritingMode;
 use crate::parser::{Parse, ParserContext};
-use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use crate::values::computed;
 use crate::values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use crate::values::computed::{Context, ToComputedValue};

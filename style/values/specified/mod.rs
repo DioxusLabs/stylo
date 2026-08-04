@@ -12,7 +12,6 @@ use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as Generic
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use super::generics::{self, NonNegative};
 use super::CSSFloat;
-use crate::context::QuirksMode;
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
 use crate::values::specified::number::parse_number_with_clamping_mode;
@@ -20,6 +19,7 @@ use crate::values::{computed, serialize_atom_identifier, AtomString};
 use crate::{Atom, Namespace, Prefix};
 use cssparser::{Parser, Token};
 use rustc_hash::FxHashMap;
+use selectors::matching::QuirksMode;
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};

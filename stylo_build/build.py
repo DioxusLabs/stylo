@@ -26,17 +26,33 @@ OUT_DIR = os.environ.get("OUT_DIR", "")
 
 def main():
     usage = (
-        "Usage: %s [ servo | gecko ]"
+        "Usage: %s [ servo | gecko ] [ properties | property-ids ]"
         % sys.argv[0]
     )
     if len(sys.argv) < 2:
         abort(usage)
     engine = sys.argv[1]
+    target = sys.argv[2] if len(sys.argv) > 2 else "properties"
 
     if engine not in ["servo", "gecko"]:
         abort(usage)
+    if target not in ["properties", "property-ids"]:
+        abort(usage)
 
     properties = data.PropertiesData(engine)
+
+    if target == "property-ids":
+        ids_template = os.path.join(BASE, "property_ids.mako.rs")
+        ids_file = render(
+            ids_template,
+            engine=engine,
+            data=properties,
+            __file__=ids_template,
+            OUT_DIR=OUT_DIR,
+        )
+        write(OUT_DIR, "property_ids.rs", ids_file)
+        return
+
     properties_template = os.path.join(BASE, "properties.mako.rs")
     properties_file = render(
         properties_template,

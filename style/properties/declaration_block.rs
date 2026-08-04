@@ -9,8 +9,8 @@
 use super::{
     property_counts, AllShorthand, ComputedValues, LogicalGroupSet, LonghandIdSet,
     LonghandIdSetIterator, NonCustomPropertyIdSet, PropertyDeclaration, PropertyDeclarationId,
-    PropertyId, ShorthandId, SourcePropertyDeclaration, SourcePropertyDeclarationDrain,
-    SubpropertiesVec,
+    PropertyId, ShorthandId, ShorthandIdExt, ShorthandIdSerializationExt,
+    SourcePropertyDeclaration, SourcePropertyDeclarationDrain, SubpropertiesVec,
 };
 use crate::context::{QuirksMode, TreeCountingCaches};
 use crate::custom_properties;

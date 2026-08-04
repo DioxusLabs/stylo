@@ -19,6 +19,9 @@ gecko = []
 
 [dependencies]
 app_units = "0.7"
+num-derive = "0.4"
+num-traits = "0.2"
+static_prefs = { workspace = true }
 bitflags = "2"
 cssparser = "0.37"
 euclid = "0.22"
@@ -32,3 +35,6 @@ thin-vec = "0.2"
 to_shmem = { workspace = true}
 to_shmem_derive = { workspace = true}
 url = { version = "2.5", optional = true }
+
+[build-dependencies]
+stylo_build = { workspace = true }

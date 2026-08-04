@@ -23,7 +23,7 @@ use crate::properties::{
     PropertyDeclarationId, PropertyFlags, ShorthandsWithPropertyReferencesCache, StyleBuilder,
     CASCADE_PROPERTY,
 };
-use crate::properties::{CustomDeclaration, CustomDeclarationValue, UnparsedValue};
+use crate::properties::{CustomDeclaration, CustomDeclarationValue, LonghandIdExt, UnparsedValue};
 use crate::properties_and_values::rule::Descriptors as PropertyDescriptors;
 use crate::properties_and_values::value::ComputedValue as ComputedRegisteredValue;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};

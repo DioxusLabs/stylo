@@ -10,6 +10,8 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code, missing_docs)]
 
+extern crate self as style_traits;
+
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[macro_use]
@@ -67,6 +69,8 @@ pub enum CSSPixel {}
 
 pub mod arc_slice;
 pub mod dom;
+pub mod property_ids;
+pub mod rule_types;
 pub mod specified_value_info;
 #[macro_use]
 pub mod values;

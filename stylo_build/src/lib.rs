@@ -59,6 +59,16 @@ pub fn emit_rerun_if_changed() {
 /// Run the property codegen pipeline for the given engine ("servo" or
 /// "gecko"), writing the generated files into `OUT_DIR`.
 pub fn generate_properties(engine: &str) {
+    generate(engine, "properties");
+}
+
+/// Generate the property ID types for the given engine ("servo" or "gecko"),
+/// writing `property_ids.rs` into `OUT_DIR`.
+pub fn generate_property_ids(engine: &str) {
+    generate(engine, "property-ids");
+}
+
+fn generate(engine: &str, target: &str) {
     emit_rerun_if_changed();
 
     let script = pipeline_dir().join("build.py");
@@ -72,7 +82,7 @@ pub fn generate_properties(engine: &str) {
         .env("PYTHONDONTWRITEBYTECODE", "1")
         .arg(&script)
         .arg(engine)
-        .arg("style-crate")
+        .arg(target)
         .status()
         .unwrap();
     if !status.success() {

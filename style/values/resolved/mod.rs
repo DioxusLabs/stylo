@@ -23,7 +23,7 @@ use crate::values::computed::{self, Length};
 #[cfg(feature = "gecko")]
 pub struct ResolvedElementInfo<'a> {
     /// Element we're resolving line-height against.
-    pub element: crate::gecko::wrapper::GeckoElement<'a>,
+    pub element: &'a crate::gecko_bindings::structs::Element,
 }
 
 /// Information needed to resolve a given value.

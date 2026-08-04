@@ -9,7 +9,6 @@ use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::device::Device;
 use crate::font_metrics::FontMetrics;
-use crate::gecko::wrapper::GeckoElement;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::logical_geometry::WritingMode;
@@ -81,7 +80,7 @@ impl Device {
         &self,
         font: &crate::properties::style_structs::Font,
         writing_mode: WritingMode,
-        element: Option<GeckoElement>,
+        element: Option<&structs::Element>,
     ) -> NonNegativeLength {
         let pres_context = self.pres_context();
         let line_height = font.clone_line_height();
@@ -91,7 +90,7 @@ impl Device {
                 pres_context.map_or(std::ptr::null(), |pc| pc),
                 writing_mode.is_text_vertical(),
                 &**font,
-                element.map_or(std::ptr::null(), |e| e.0),
+                element.map_or(std::ptr::null(), |e| e),
             )
         });
         NonNegativeLength::new(au.to_f32_px())

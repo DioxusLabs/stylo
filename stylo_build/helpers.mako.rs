@@ -518,7 +518,7 @@ pub mod ${property.ident} {
 
         % if property.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko":
         if let Some(sf) = specified_value.get_system() {
-            crate::properties::gecko::system_font::resolve_system_font(sf, context);
+            crate::properties::system_font::resolve_system_font(sf, context);
         }
         % endif
 

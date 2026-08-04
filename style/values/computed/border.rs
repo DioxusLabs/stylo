@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::properties::{LogicalGroupId, LonghandId};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::animated::{Context as AnimatedContext, ToAnimatedValue};
 use crate::values::computed::length::{
@@ -95,6 +96,7 @@ pub type BorderSideOffset = Au;
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for BorderImageWidth {
     fn to_typed(&self, _dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         return Err(());
@@ -108,6 +110,7 @@ pub type BorderImageSideWidth =
 /// A computed value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for BorderImageSlice {
     fn to_typed(&self, _dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         return Err(());

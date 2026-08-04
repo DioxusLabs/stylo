@@ -10,6 +10,7 @@ use crate::color::parsing::ChannelKeyword;
 use crate::color::AbsoluteColor;
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::generics::calc::{
@@ -121,6 +122,7 @@ pub enum Leaf {
     TreeCountingFunction(TreeCountingFunction),
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Leaf {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         // XXX Only supporting Length, Number, Percentage, Angle and Time for now
@@ -266,12 +268,14 @@ impl CalcNumeric {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for CalcNumeric {}
 
 /// A `calc()` expression that is known to resolve to a `<length-percentage>`.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem, ToTyped)]
 pub struct CalcLengthPercentage(pub CalcNumeric);
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for CalcLengthPercentage {}
 
 /// Should parsing anchor-positioning functions in `calc()` be allowed?

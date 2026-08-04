@@ -5,6 +5,7 @@
 //! Computed values for properties related to animations and transitions
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::computed::{Context, LengthPercentage, Time, ToComputedValue};
 use crate::values::generics::animation as generics;
@@ -82,6 +83,7 @@ impl ToCss for AnimationIterationCount {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for AnimationIterationCount {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         if self.0.is_infinite() {

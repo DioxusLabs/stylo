@@ -5,6 +5,7 @@
 //! Computed color values.
 
 use crate::color::AbsoluteColor;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::animated::ToAnimatedZero;
 use crate::values::computed::percentage::Percentage;
@@ -45,6 +46,7 @@ impl ToCss for Color {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Color {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match *self {

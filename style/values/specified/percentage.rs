@@ -6,14 +6,17 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::computed::percentage::Percentage as ComputedPercentage;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::NonNegative;
+#[cfg(feature = "typed_om")]
+use crate::values::reify_percentage;
 use crate::values::specified::calc::{CalcNode, CalcNumeric, Leaf};
 use crate::values::specified::{CalcLengthPercentage, LengthPercentage, NoCalcNumber, Number};
 use crate::values::tagged_numeric::{Extracted, NumericUnion, Unpacked, UnpackedMut};
-use crate::values::{normalize, reify_percentage, serialize_percentage, CSSFloat};
+use crate::values::{normalize, serialize_percentage, CSSFloat};
 use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
@@ -25,6 +28,7 @@ use thin_vec::ThinVec;
 #[repr(C)]
 pub struct NoCalcPercentage(CSSFloat);
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for NoCalcPercentage {}
 
 impl ToCss for NoCalcPercentage {
@@ -36,6 +40,7 @@ impl ToCss for NoCalcPercentage {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for NoCalcPercentage {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         reify_percentage(self.0, dest)
@@ -114,6 +119,7 @@ impl ToCss for Percentage {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Percentage {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.0.unpack() {
@@ -303,6 +309,7 @@ impl ToComputedValue for Percentage {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Percentage {}
 
 /// Turns the percentage into a plain float.

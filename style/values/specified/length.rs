@@ -13,6 +13,7 @@ use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::GeckoFontMetrics;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::computed::{self, CSSPixelLength, Context, FontSize};
 use crate::values::generics::length as generics;
@@ -1056,6 +1057,7 @@ impl ToCss for NoCalcLength {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for NoCalcLength {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         let numeric_type = NumericType::length();
@@ -1070,6 +1072,7 @@ impl ToTyped for NoCalcLength {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for NoCalcLength {}
 
 impl PartialOrd for NoCalcLength {
@@ -1116,6 +1119,7 @@ impl ToCss for Length {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Length {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.0.unpack() {
@@ -1125,6 +1129,7 @@ impl ToTyped for Length {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Length {}
 
 impl From<NoCalcLength> for Length {

@@ -16,6 +16,7 @@ use std::{ops, ptr, fmt, mem};
 #[cfg(feature = "servo")] use crate::logical_geometry::LogicalMargin;
 #[cfg(feature = "servo")] use crate::dom::AttributeReferences;
 use crate::logical_geometry::WritingMode;
+#[cfg(feature = "malloc_size_of")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::computed_value_flags::*;
 use cssparser::Parser;
@@ -23,10 +24,13 @@ use crate::device::Device;
 use crate::parser::ParserContext;
 use crate::selector_parser::PseudoElement;
 use crate::stylist::Stylist;
-use style_traits::{CssStringWriter, CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::{CssStringWriter, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind, ToCss};
+#[cfg(feature = "specified_value_info")]
+use style_traits::SpecifiedValueInfo;
 use crate::derives::*;
 use crate::stylesheets::{CssRuleType, CssRuleTypes, Origin};
 use crate::logical_geometry::{LogicalAxis, LogicalCorner, LogicalSide};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValueList};
 use crate::use_counters::UseCounters;
 use crate::rule_tree::StrongRuleNode;
@@ -211,6 +215,7 @@ impl PartialEq for PropertyDeclaration {
     }
 }
 
+#[cfg(feature = "malloc_size_of")]
 impl MallocSizeOf for PropertyDeclaration {
     #[inline]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
@@ -273,6 +278,7 @@ impl PropertyDeclaration {
     }
 
     /// Like the method on ToTyped.
+    #[cfg(feature = "typed_om")]
     pub fn to_typed_value_list(&self) -> Option<TypedValueList> {
         use self::PropertyDeclaration::*;
 
@@ -472,6 +478,7 @@ impl NonCustomPropertyId {
 
     /// The supported types of this property. The return value should be
     /// style_traits::CssType when it can become a bitflags type.
+    #[cfg(feature = "specified_value_info")]
     pub(super) fn supported_types(&self) -> u8 {
         const SUPPORTED_TYPES: [u8; property_counts::LONGHANDS_AND_SHORTHANDS] = [
             % for prop in data.longhands:
@@ -489,6 +496,7 @@ impl NonCustomPropertyId {
     }
 
     /// See PropertyId::collect_property_completion_keywords.
+    #[cfg(feature = "specified_value_info")]
     pub(super) fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
         fn do_nothing(_: KeywordsCollectFn) {}
         const COLLECT_FUNCTIONS: [fn(KeywordsCollectFn);
@@ -1729,6 +1737,7 @@ impl ComputedValues {
 
     /// Returns the computed value of the given longhand as a
     /// [`TypedValueList`], if supported.
+    #[cfg(feature = "typed_om")]
     pub fn property_value_to_typed_value_list(
         &self,
         property_id: LonghandId,

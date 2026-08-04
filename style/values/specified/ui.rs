@@ -72,6 +72,7 @@ impl Parse for CursorImage {
 
 // This trait is manually implemented because we don't support the whole <image>
 // syntax for cursors
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for CursorImage {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         f(&["url", "image-set"]);

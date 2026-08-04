@@ -7,6 +7,7 @@
 use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
+use crate::derives::MallocSizeOf;
 use crate::font_metrics::FontMetrics;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::MediaType;
@@ -28,7 +29,6 @@ use crate::values::KeyframesName;
 use app_units::{Au, AU_PER_PX};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
-use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::RwLock;
 use servo_arc::Arc;

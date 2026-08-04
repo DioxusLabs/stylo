@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::computed::border::BorderSideWidth as ComputedBorderSideWidth;
 use crate::values::computed::{Context, ToComputedValue};
@@ -74,6 +75,7 @@ impl BorderStyle {
 /// A specified value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for BorderImageWidth {
     // Note: The specification does not currently define how border image width
     // should be reified into Typed OM. The current behavior follows existing
@@ -95,6 +97,7 @@ pub type BorderImageSideWidth =
 /// A specified value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for BorderImageSlice {
     // Note: The specification does not currently define how border image slice
     // should be reified into Typed OM. The current behavior follows existing

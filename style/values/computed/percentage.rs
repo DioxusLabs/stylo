@@ -5,10 +5,13 @@
 //! Computed percentages.
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::generics::{ClampToNonNegative, NonNegative};
+#[cfg(feature = "typed_om")]
+use crate::values::reify_percentage;
 use crate::values::specified::percentage::ToPercentage;
-use crate::values::{reify_percentage, serialize_normalized_percentage, CSSFloat};
+use crate::values::{serialize_normalized_percentage, CSSFloat};
 use crate::Zero;
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
@@ -113,6 +116,7 @@ impl ToCss for Percentage {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Percentage {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         reify_percentage(self.0, dest)

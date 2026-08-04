@@ -20,6 +20,7 @@ use crate::properties_and_values::{
 };
 use crate::stylesheets::UrlExtraData;
 use crate::stylist::Stylist;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{
     ToTyped, TypedValue, UnparsedSegment, UnparsedValue, VariableReferenceValue,
 };
@@ -312,6 +313,7 @@ impl ToCss for SpecifiedValue {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for SpecifiedValue {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         let unparsed_value = reify_variable_value(self)?;
@@ -320,6 +322,7 @@ impl ToTyped for SpecifiedValue {
     }
 }
 
+#[cfg(feature = "typed_om")]
 fn reify_variable_value(value: &VariableValue) -> Result<UnparsedValue, ()> {
     let mut reference_index = 0;
     reify_variable_value_range(
@@ -337,6 +340,7 @@ fn reify_variable_value(value: &VariableValue) -> Result<UnparsedValue, ()> {
 /// inserted before references in their fallback. The shared `reference_index`
 /// relies on this ordering to recurse into fallbacks without reprocessing
 /// nested referecences.
+#[cfg(feature = "typed_om")]
 fn reify_variable_value_range(
     css: &str,
     references: &[SubstitutionFunctionReference],

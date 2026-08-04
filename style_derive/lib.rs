@@ -87,3 +87,30 @@ pub fn derive_to_typed(stream: TokenStream) -> TokenStream {
     let input = syn::parse(stream).unwrap();
     to_typed::derive(input).into()
 }
+
+// No-op stand-ins for expensive derives. These allow the style crate to
+// disable the corresponding derive expansions via cargo features while
+// still accepting the same helper attributes.
+
+#[proc_macro_derive(
+    NoopMallocSizeOf,
+    attributes(ignore_malloc_size_of, conditional_malloc_size_of, malloc_size_of)
+)]
+pub fn derive_noop_malloc_size_of(_: TokenStream) -> TokenStream {
+    TokenStream::new()
+}
+
+#[proc_macro_derive(NoopToShmem, attributes(shmem))]
+pub fn derive_noop_to_shmem(_: TokenStream) -> TokenStream {
+    TokenStream::new()
+}
+
+#[proc_macro_derive(NoopSpecifiedValueInfo, attributes(css, parse, value_info))]
+pub fn derive_noop_specified_value_info(_: TokenStream) -> TokenStream {
+    TokenStream::new()
+}
+
+#[proc_macro_derive(NoopToTyped, attributes(css, typed))]
+pub fn derive_noop_to_typed(_: TokenStream) -> TokenStream {
+    TokenStream::new()
+}

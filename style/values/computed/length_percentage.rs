@@ -13,6 +13,7 @@ use crate::derives::*;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::{AnchorPosOffsetResolutionParams, GeckoFontMetrics};
 use crate::logical_geometry::{PhysicalAxis, PhysicalSide};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::animated::{
     Animate, Context as AnimatedContext, Procedure, ToAnimatedValue, ToAnimatedZero,
@@ -511,6 +512,7 @@ impl ToCss for LengthPercentage {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for LengthPercentage {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         self.unpack().to_typed(dest)

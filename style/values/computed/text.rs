@@ -7,6 +7,7 @@
 use crate::derives::*;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::bindings;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::animated::text::TextDecorationInset as AnimatedTextDecorationInset;
 use crate::values::animated::{Context as AnimatedContext, ToAnimatedValue};
@@ -155,6 +156,7 @@ impl ToCss for LetterSpacing {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for LetterSpacing {
     // Note: The specification does not currently define how letter spacing
     // should be reified into Typed OM. The current behavior follows existing

@@ -127,6 +127,7 @@ impl ToCss for NoCalcResolution {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for NoCalcResolution {}
 
 /// A specified resolution value, either a plain value or a `calc()` expression.
@@ -147,6 +148,7 @@ impl ToCss for Resolution {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Resolution {}
 
 impl Resolution {

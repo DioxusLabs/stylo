@@ -144,6 +144,7 @@ pub enum PropertyRegistrationError {
 
 impl PropertyRegistration {
     /// Measure heap usage.
+    #[cfg(feature = "malloc_size_of")]
     pub fn size_of(&self, _: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         MallocSizeOf::size_of(self, ops)
     }

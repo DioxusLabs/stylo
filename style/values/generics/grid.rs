@@ -7,6 +7,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::specified;
 use crate::values::{CSSFloat, CustomIdent};
@@ -258,6 +259,7 @@ impl ToCss for Flex {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Flex {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         let numeric_type = NumericType::flex();
@@ -429,6 +431,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<L: ToTyped> ToTyped for TrackSize<L> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match *self {
@@ -731,6 +734,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<L: ToTyped, I: ToTyped> ToTyped for TrackList<L, I> {
     // Note: The specification does not currently define how grid track lists
     // should be reified into Typed OM. The current behavior follows existing

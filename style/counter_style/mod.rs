@@ -170,6 +170,7 @@ impl CounterStyle {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for CounterStyle {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         // XXX The best approach for implementing this is probably

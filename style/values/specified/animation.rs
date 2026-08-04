@@ -7,6 +7,7 @@
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::{NonCustomPropertyId, PropertyId, ShorthandId};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::ToTyped;
 use crate::values::generics::animation as generics;
 use crate::values::generics::position::{IsTreeScoped, TreeScoped};
@@ -51,6 +52,7 @@ impl ToCss for TransitionProperty {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for TransitionProperty {}
 
 impl Parse for TransitionProperty {
@@ -80,6 +82,7 @@ impl Parse for TransitionProperty {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for TransitionProperty {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         // `transition-property` can actually accept all properties and
@@ -637,6 +640,7 @@ impl ToCss for TimelineIdent {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for TimelineName {}
 
 /// A specified value for the `animation-timeline` property.

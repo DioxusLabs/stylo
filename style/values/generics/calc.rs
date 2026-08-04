@@ -7,6 +7,7 @@
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{MathSum, MathValue, NumericValue, ToTyped, TypedValue};
 use crate::values::generics::length::GenericAnchorSizeFunction;
 use crate::values::generics::position::{GenericAnchorFunction, GenericAnchorSide};
@@ -476,8 +477,18 @@ macro_rules! compare_helpers {
     };
 }
 
+#[cfg(feature = "typed_om")]
+use crate::typed_om::ToTyped as CalcLeafToTyped;
+
+/// Stand-in for the `ToTyped` supertrait bound when Typed OM support is
+/// disabled.
+#[cfg(not(feature = "typed_om"))]
+pub trait CalcLeafToTyped {}
+#[cfg(not(feature = "typed_om"))]
+impl<T> CalcLeafToTyped for T {}
+
 /// A trait that represents all the stuff a valid leaf of a calc expression.
-pub trait CalcNodeLeaf: Clone + Sized + PartialEq + ToCss + ToTyped {
+pub trait CalcNodeLeaf: Clone + Sized + PartialEq + ToCss + CalcLeafToTyped {
     /// Returns the unit of the leaf.
     fn unit(&self) -> CalcUnits;
 
@@ -2670,6 +2681,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         Ok(())
     }
 
+    #[cfg(feature = "typed_om")]
     fn to_typed_impl(
         &self,
         dest: &mut ThinVec<TypedValue>,
@@ -2882,6 +2894,7 @@ impl<L: CalcNodeLeaf> ToCss for CalcNode<L> {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<L: CalcNodeLeaf> ToTyped for CalcNode<L> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         CalcNodeWithLevel::calculation_root(self).to_typed(dest)
@@ -2915,6 +2928,7 @@ impl<'a, L> CalcNodeWithLevel<'a, L> {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<'a, L: CalcNodeLeaf> ToTyped for CalcNodeWithLevel<'a, L> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         self.node.to_typed_impl(dest, self.level.clone())

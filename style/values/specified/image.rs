@@ -11,6 +11,7 @@ use crate::color::mix::ColorInterpolationMethod;
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
 use crate::stylesheets::CorsMode;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ImageValue, KeywordValue, ToTyped, TypedValue};
 use crate::values::generics::color::{ColorMixFlags, GenericLightDark};
 use crate::values::generics::image::{
@@ -45,6 +46,7 @@ fn gradient_color_interpolation_method_enabled() -> bool {
 /// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = generic::Image<Gradient, SpecifiedUrl, Color, Percentage, Resolution>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Image {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match *self {
@@ -142,6 +144,7 @@ fn cross_fade_enabled() -> bool {
     false
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
 
@@ -169,6 +172,7 @@ impl SpecifiedValueInfo for Gradient {
 
 // Need to manually implement as whether or not cross-fade shows up in
 // completions & etc is dependent on it being enabled.
+#[cfg(feature = "specified_value_info")]
 impl<Image, Color, Percentage> SpecifiedValueInfo for generic::CrossFade<Image, Color, Percentage> {
     const SUPPORTED_TYPES: u8 = 0;
 
@@ -179,6 +183,7 @@ impl<Image, Color, Percentage> SpecifiedValueInfo for generic::CrossFade<Image, 
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl<Image, Resolution> SpecifiedValueInfo for generic::ImageSet<Image, Resolution> {
     const SUPPORTED_TYPES: u8 = 0;
 

@@ -10,6 +10,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::position::IsTreeScoped;
@@ -451,6 +452,7 @@ where
 }
 
 /// Reify a percentage.
+#[cfg(feature = "typed_om")]
 pub fn reify_percentage(value: CSSFloat, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
     let numeric_value = NumericValue::Unit(UnitValue {
         numeric_type: NumericType::percent(),
@@ -610,6 +612,7 @@ impl ToCss for CustomIdent {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for CustomIdent {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         // This shouldn't escape identifiers. See bug 2023533.
@@ -792,6 +795,7 @@ impl ToCss for KeyframesName {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for KeyframesName {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         let s = ToCss::to_css_cssstring(self);

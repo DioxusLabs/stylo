@@ -538,6 +538,7 @@ pub mod border {
 
     // We need to implement this by hand because deriving this would also derive border-image,
     // which this property only resets. Just use the same as border-left for simplicity.
+    #[cfg(feature = "specified_value_info")]
     impl SpecifiedValueInfo for Longhands {
         const SUPPORTED_TYPES: u8 = border_left::Longhands::SUPPORTED_TYPES;
 
@@ -1115,6 +1116,7 @@ pub mod white_space {
         }
     }
 
+    #[cfg(feature = "specified_value_info")]
     impl SpecifiedValueInfo for Longhands {
         fn collect_completion_keywords(f: KeywordsCollectFn) {
             // Collect keywords from our longhands.
@@ -2845,6 +2847,7 @@ pub mod font {
         }
     }
 
+    #[cfg(feature = "specified_value_info")]
     impl SpecifiedValueInfo for Longhands {
         const SUPPORTED_TYPES: u8 = FontStyle::SUPPORTED_TYPES
             | FontWeight::SUPPORTED_TYPES
@@ -3121,6 +3124,7 @@ pub mod font_synthesis {
 
     // The shorthand takes the sub-property names of the longhands, and not the
     // 'auto' keyword like they do, so we can't automatically derive this.
+    #[cfg(feature = "specified_value_info")]
     impl SpecifiedValueInfo for Longhands {
         fn collect_completion_keywords(f: KeywordsCollectFn) {
             f(&[

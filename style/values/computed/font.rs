@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::{
@@ -176,6 +177,7 @@ impl ToCss for FontWeight {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for FontWeight {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         self.value().to_typed(dest)
@@ -477,6 +479,7 @@ impl FontFamily {
     }
 }
 
+#[cfg(feature = "malloc_size_of")]
 impl MallocSizeOf for FontFamily {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         use malloc_size_of::MallocUnconditionalSizeOf;
@@ -1454,6 +1457,7 @@ impl ToCss for FontStretch {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for FontStretch {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.as_keyword() {

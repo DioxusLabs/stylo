@@ -439,12 +439,8 @@ impl SystemColor {
     fn compute(&self, cx: &Context) -> ComputedColor {
         use crate::gecko_bindings::bindings;
 
-        let color = cx.device().system_nscolor(*self, cx.builder.color_scheme);
-        if cx.for_non_inherited_property {
-            cx.rule_cache_conditions
-                .borrow_mut()
-                .set_color_scheme_dependency(cx.builder.color_scheme);
-        }
+        let color = cx.system_nscolor(*self);
+        cx.note_color_scheme_dependency();
         if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
             return ComputedColor::currentcolor();
         }
@@ -515,13 +511,9 @@ pub enum SystemColor {
 impl SystemColor {
     #[inline]
     fn compute(&self, cx: &Context) -> ComputedColor {
-        if cx.for_non_inherited_property {
-            cx.rule_cache_conditions
-                .borrow_mut()
-                .set_color_scheme_dependency(cx.builder.color_scheme);
-        }
+        cx.note_color_scheme_dependency();
 
-        ComputedColor::Absolute(cx.device().system_color(*self, cx.builder.color_scheme))
+        ComputedColor::Absolute(cx.system_color(*self))
     }
 }
 
@@ -917,7 +909,7 @@ impl Color {
             },
             Color::System(system) => system.compute(context.ok_or(())?),
             Color::InheritFromBodyQuirk => {
-                ComputedColor::Absolute(context.ok_or(())?.device().body_text_color())
+                ComputedColor::Absolute(context.ok_or(())?.body_text_color())
             },
         })
     }
@@ -996,7 +988,7 @@ impl ToComputedValue for ColorPropertyValue {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        let current_color = context.builder.get_parent_inherited_text().clone_color();
+        let current_color = context.parent_color();
         self.0
             .to_computed_value(context)
             .resolve_to_absolute(&current_color)

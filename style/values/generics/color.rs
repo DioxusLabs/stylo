@@ -300,12 +300,8 @@ impl<T> GenericLightDark<T> {
 impl<T: ToComputedValue> GenericLightDark<T> {
     /// Choose the light or dark version of this value for computation purposes, and compute it.
     pub fn compute(&self, cx: &crate::values::computed::Context) -> T::ComputedValue {
-        let dark = cx.device().is_dark_color_scheme(cx.builder.color_scheme);
-        if cx.for_non_inherited_property {
-            cx.rule_cache_conditions
-                .borrow_mut()
-                .set_color_scheme_dependency(cx.builder.color_scheme);
-        }
+        let dark = cx.is_dark_color_scheme();
+        cx.note_color_scheme_dependency();
         let chosen = if dark { &self.dark } else { &self.light };
         chosen.to_computed_value(cx)
     }

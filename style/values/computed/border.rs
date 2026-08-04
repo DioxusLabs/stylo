@@ -5,7 +5,6 @@
 //! Computed types for CSS values related to borders.
 
 use crate::derives::*;
-use crate::properties::{LogicalGroupId, LonghandId};
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::animated::{Context as AnimatedContext, ToAnimatedValue};
 use crate::values::computed::length::{
@@ -22,6 +21,7 @@ use crate::values::generics::NonNegative;
 use crate::values::resolved::{Context as ResolvedContext, ToResolvedValue};
 use crate::Zero;
 use app_units::Au;
+use style_traits::property_ids::{LogicalGroupId, LonghandId};
 use thin_vec::ThinVec;
 
 pub use crate::values::specified::border::BorderImageRepeat;

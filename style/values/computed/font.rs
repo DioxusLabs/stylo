@@ -890,7 +890,7 @@ impl ToComputedValue for specified::FontSizeAdjust {
                 FontMetricsOrientation::Horizontal
             };
             let metrics = context.query_font_metrics(FontBaseSize::CurrentStyle, orient, flags);
-            let font_size = context.style().get_font().clone_font_size().used_size.0;
+            let font_size = context.font_size(FontBaseSize::CurrentStyle).used_size.0;
             (metrics, font_size)
         };
 
@@ -1133,21 +1133,19 @@ impl ToComputedValue for specified::MathDepth {
     type ComputedValue = MathDepth;
 
     fn to_computed_value(&self, cx: &Context) -> i8 {
-        use crate::properties::longhands::math_style::SpecifiedValue as MathStyleValue;
         use std::{cmp, i8};
 
         let int = match self {
             specified::MathDepth::AutoAdd => {
-                let parent = cx.builder.get_parent_font().clone_math_depth() as i32;
-                let style = cx.builder.get_parent_font().clone_math_style();
-                if style == MathStyleValue::Compact {
+                let parent = cx.parent_math_depth() as i32;
+                if cx.parent_math_style_is_compact() {
                     parent.saturating_add(1)
                 } else {
                     parent
                 }
             },
             specified::MathDepth::Add(rel) => {
-                let parent = cx.builder.get_parent_font().clone_math_depth();
+                let parent = cx.parent_math_depth();
                 (parent as i32).saturating_add(rel.to_computed_value(cx))
             },
             specified::MathDepth::Absolute(abs) => abs.to_computed_value(cx),

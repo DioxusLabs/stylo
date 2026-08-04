@@ -93,13 +93,10 @@ impl ToComputedValue for specified::Resize {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Resize {
-        let is_vertical = context.style().writing_mode.is_vertical();
+        let is_vertical = context.writing_mode().is_vertical();
         match self {
             specified::Resize::Inline => {
-                context
-                    .rule_cache_conditions
-                    .borrow_mut()
-                    .set_writing_mode_dependency(context.builder.writing_mode);
+                context.note_writing_mode_dependency();
                 if is_vertical {
                     Resize::Vertical
                 } else {
@@ -107,10 +104,7 @@ impl ToComputedValue for specified::Resize {
                 }
             },
             specified::Resize::Block => {
-                context
-                    .rule_cache_conditions
-                    .borrow_mut()
-                    .set_writing_mode_dependency(context.builder.writing_mode);
+                context.note_writing_mode_dependency();
                 if is_vertical {
                     Resize::Horizontal
                 } else {

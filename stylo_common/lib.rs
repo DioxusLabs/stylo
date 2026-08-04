@@ -29,6 +29,7 @@ mod derives {
 
 pub mod atom_types;
 pub mod attr_taint;
+pub mod element_context;
 pub mod error_reporting;
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code)]

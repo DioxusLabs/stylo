@@ -14,7 +14,6 @@ use crate::context::{SharedStyleContext, TreeCountingCaches};
 use crate::data::{ElementData, ElementDataMut, ElementDataRef};
 use crate::device::Device;
 use crate::properties::{AnimationDeclarations, ComputedValues, PropertyDeclarationBlock};
-use crate::selector_map::PrecomputedHashMap;
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, RestyleDamage, SelectorImpl};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylesheets::scope_rule::ImplicitScopeRoot;
@@ -27,7 +26,6 @@ use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode}
 use selectors::sink::Push;
 use selectors::{Element as SelectorsElement, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
-use smallvec::SmallVec;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -1015,109 +1013,28 @@ pub trait TElement:
     }
 }
 
-/// Provides element-level context needed during style computation.
-pub trait ElementContext {
-    /// Opaque handle to the element.
-    fn opaque_element(&self) -> Option<OpaqueElement>;
+pub use style_common::element_context::{
+    AttributeReferences, AttributeTracker, DummyElementContext, ElementContext,
+};
 
-    /// Opaque handle to the element's parent node.
-    fn opaque_parent(&self) -> Option<OpaqueNode>;
+/// Adapter exposing a `TElement` as an `ElementContext`.
+pub struct TElementContext<E>(pub E);
 
-    /// Return the value of the given custom attribute if it exists.
-    fn get_attr(&self, attr: &LocalName, namespace: &Namespace) -> Option<String>;
-
-    /// Traverse the siblings of the element, returning the element's sibling-index()
-    /// and sibling-count(). Also populates `caches` with the sibling-index() and
-    /// sibling-count() values for all siblings of this element.
-    fn get_tree_counting_result(&self, caches: &mut TreeCountingCaches) -> TreeCountingResult;
-}
-
-impl<T: TElement> ElementContext for T {
+impl<E: TElement> ElementContext for TElementContext<E> {
     fn opaque_element(&self) -> Option<OpaqueElement> {
-        Some(self.opaque())
+        Some(self.0.opaque())
     }
 
     fn opaque_parent(&self) -> Option<OpaqueNode> {
-        self.as_node().parent_node().map(|n| n.opaque())
+        self.0.as_node().parent_node().map(|n| n.opaque())
     }
 
     fn get_attr(&self, attr: &LocalName, namespace: &Namespace) -> Option<String> {
-        TElement::get_attr(self, attr, namespace)
+        TElement::get_attr(&self.0, attr, namespace)
     }
 
     fn get_tree_counting_result(&self, caches: &mut TreeCountingCaches) -> TreeCountingResult {
-        TElement::get_tree_counting_result(self, caches)
-    }
-}
-
-/// A set of the attributes used to compute a style that uses `attr()`
-pub type AttributeReferences = Option<Box<PrecomputedHashMap<LocalName, SmallVec<[Namespace; 1]>>>>;
-
-/// A data structure to keep track of the names queried from an element.
-pub struct AttributeTracker<'a> {
-    /// The element that queries for attributes.
-    pub context: &'a dyn ElementContext,
-    /// The set of attributes we have queried.
-    pub references: AttributeReferences,
-}
-
-impl<'a> AttributeTracker<'a> {
-    /// Construct a new attribute tracker trivially.
-    pub fn new(context: &'a dyn ElementContext) -> Self {
-        Self {
-            context,
-            references: None,
-        }
-    }
-
-    /// Construct a new dummy attribute tracker
-    pub fn new_dummy() -> Self {
-        Self {
-            context: &DummyElementContext {},
-            references: None,
-        }
-    }
-
-    /// Extract the queried references and consume self
-    pub fn finalize(self) -> AttributeReferences {
-        self.references
-    }
-
-    /// Query the value and save the name of the attribtue.
-    pub fn query(&mut self, name: &LocalName, namespace: &Namespace) -> Option<String> {
-        // We need to save namespaces in case we are thinking of sharing this element's
-        // style with another.
-        // i.e if elment a has ns1::attr="blue"
-        // and element b has ns2::attr="blue"
-        // a and b can only share style if ns1 and ns2 resolve to the same namespace.
-        self.references
-            .get_or_insert_default()
-            .entry(name.clone())
-            .or_default()
-            .push(namespace.clone());
-        self.context.get_attr(name, namespace)
-    }
-}
-
-/// A dummy ElementContext that returns default values to any query.
-#[derive(Clone, Debug, PartialEq)]
-pub struct DummyElementContext;
-
-impl ElementContext for DummyElementContext {
-    fn get_attr(&self, _attr: &LocalName, _namespace: &Namespace) -> Option<String> {
-        None
-    }
-
-    fn opaque_element(&self) -> Option<OpaqueElement> {
-        None
-    }
-
-    fn opaque_parent(&self) -> Option<OpaqueNode> {
-        None
-    }
-
-    fn get_tree_counting_result(&self, _: &mut TreeCountingCaches) -> TreeCountingResult {
-        TreeCountingResult::default()
+        TElement::get_tree_counting_result(&self.0, caches)
     }
 }
 

@@ -8,6 +8,7 @@ members = [
     "selectors",
     "servo_arc",
     "style",
+    "stylo_build",
     "style_derive",
     "stylo_static_prefs",
     "style_traits",
@@ -34,3 +35,4 @@ dom             = { version = "0.20.0", path = "./stylo_dom", package = "stylo_d
 style_traits    = { version = "0.20.0", path = "./style_traits", features = ["servo"], package = "stylo_traits"}
 style_derive    = { version = "0.20.0", path = "./style_derive", package = "stylo_derive"}
 stylo           = { version = "0.20.0", path = "./style" }
+stylo_build     = { version = "0.20.0", path = "./stylo_build" }

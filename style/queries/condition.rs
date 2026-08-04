@@ -20,7 +20,6 @@ use crate::properties_and_values::value::{
     SpecifiedValue as SpecifiedRegisteredValue,
 };
 use crate::stylesheets::{CssRuleType, CustomMediaEvaluator, Origin, UrlExtraData};
-use crate::stylist::Stylist;
 use crate::values::{computed, AtomString, DashedIdent};
 use crate::{error_reporting::ContextualParseError, parser::Parse, parser::ParserContext};
 use cssparser::{
@@ -411,7 +410,7 @@ impl StyleFeaturePlain {
     fn substitute_and_compare(
         value: &Arc<custom_properties::SpecifiedValue>,
         registration: &PropertyDescriptors,
-        stylist: &Stylist,
+        stylist: &dyn crate::values::computed::CustomPropertyRegistry,
         ctx: &computed::Context,
         attribute_tracker: &mut AttributeTracker,
         current_value: Option<&ComputedRegisteredValue>,

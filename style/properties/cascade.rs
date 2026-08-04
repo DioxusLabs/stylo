@@ -881,14 +881,10 @@ impl<'a> Cascade<'a> {
             }
         }
 
-        debug_assert!(
-            context.builder.stylist.is_some(),
-            "Need a Stylist to substitute variables!"
-        );
         declaration.value.substitute_variables(
             declaration.id,
             &context.builder.substitution_functions(),
-            context.builder.stylist.unwrap(),
+            self.stylist,
             context,
             shorthand_cache,
             attribute_tracker,
@@ -1211,7 +1207,7 @@ impl<'a> Cascade<'a> {
         // We could call apply_declarations directly, but that'd cause
         // another instantiation of this function which is not great.
         let style = cascade_rules(
-            context.builder.stylist.unwrap(),
+            self.stylist,
             context.builder.pseudo,
             visited_rules,
             guards,

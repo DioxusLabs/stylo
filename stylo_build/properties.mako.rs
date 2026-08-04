@@ -23,7 +23,6 @@ use cssparser::Parser;
 use crate::device::Device;
 use crate::parser::ParserContext;
 use crate::selector_parser::PseudoElement;
-use crate::stylist::Stylist;
 use style_traits::{CssStringWriter, CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use crate::derives::*;
 use crate::stylesheets::Origin;
@@ -67,6 +66,13 @@ impl<T> MaybeBoxed<Box<T>> for T {
 
 % endif
 % if half == "types":
+% if engine == "gecko":
+#[allow(unsafe_code, missing_docs)]
+pub mod system_font {
+    <%include file="/system_font.mako.rs" />
+}
+% endif
+
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
@@ -1641,7 +1647,7 @@ pub struct StyleBuilder<'a> {
 
     /// The stylist we're using to compute style except for media queries.
     /// device is used in media queries instead.
-    pub stylist: Option<&'a Stylist>,
+    pub stylist: Option<&'a dyn computed::CustomPropertyRegistry>,
 
     /// The style we're inheriting from.
     ///
@@ -1709,7 +1715,7 @@ impl<'a> StyleBuilder<'a> {
     /// Trivially construct a `StyleBuilder`.
     pub fn new(
         device: &'a Device,
-        stylist: Option<&'a Stylist>,
+        stylist: Option<&'a dyn computed::CustomPropertyRegistry>,
         parent_style: Option<&'a ComputedValues>,
         pseudo: Option<&'a PseudoElement>,
         rules: Option<StrongRuleNode>,
@@ -1755,7 +1761,7 @@ impl<'a> StyleBuilder<'a> {
     /// used for animations.
     pub fn for_derived_style(
         device: &'a Device,
-        stylist: Option<&'a Stylist>,
+        stylist: Option<&'a dyn computed::CustomPropertyRegistry>,
         style_to_derive_from: &'a ComputedValues,
         parent_style: Option<&'a ComputedValues>,
     ) -> Self {
@@ -1868,7 +1874,7 @@ impl<'a> StyleBuilder<'a> {
     /// computed values that need to be provided as well.
     pub fn for_inheritance(
         device: &'a Device,
-        stylist: Option<&'a Stylist>,
+        stylist: Option<&'a dyn computed::CustomPropertyRegistry>,
         parent: Option<&'a ComputedValues>,
         pseudo: Option<&'a PseudoElement>,
     ) -> Self {

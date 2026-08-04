@@ -931,7 +931,9 @@ impl Stylist {
             let mut rule_cache_conditions = RuleCacheConditions::default();
             let mut tree_counting_caches = TreeCountingCaches::default();
             let context = computed::Context::new_for_initial_at_property_value(
+                self.device(),
                 self,
+                self.quirks_mode(),
                 &mut rule_cache_conditions,
                 &mut tree_counting_caches,
             );
@@ -2077,6 +2079,16 @@ impl Stylist {
     /// Shutdown the static data that this module stores.
     pub fn shutdown() {
         let _entries = UA_CASCADE_DATA_CACHE.lock().unwrap().take_all();
+    }
+}
+
+impl crate::values::computed::CustomPropertyRegistry for Stylist {
+    fn get_custom_property_registration(&self, name: &Atom) -> &PropertyDescriptors {
+        Stylist::get_custom_property_registration(self, name)
+    }
+
+    fn get_custom_property_initial_values(&self) -> &ComputedCustomProperties {
+        Stylist::get_custom_property_initial_values(self)
     }
 }
 

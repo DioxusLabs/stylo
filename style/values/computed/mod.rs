@@ -28,7 +28,7 @@ use crate::rule_tree::{CascadeLevel, RuleCascadeFlags};
 use crate::stylesheets::container_rule::{
     ContainerInfo, ContainerSizeQuery, ContainerSizeQueryResult,
 };
-use crate::stylist::Stylist;
+
 use crate::values::generics::ClampToNonNegative;
 use crate::values::specified::font::QueryFontMetricsFlags;
 use crate::values::specified::length::{FontBaseSize, LineHeightBase};
@@ -177,6 +177,20 @@ pub mod tree_counting;
 pub mod ui;
 pub mod url;
 
+/// The parts of the engine's `Stylist` that style computation needs:
+/// registered custom property lookups.
+pub trait CustomPropertyRegistry {
+    /// Returns the custom property registration for this property's name.
+    /// https://drafts.css-houdini.org/css-properties-values-api-1/#determining-registration
+    fn get_custom_property_registration(
+        &self,
+        name: &Atom,
+    ) -> &crate::properties_and_values::rule::Descriptors;
+
+    /// Returns custom properties with their registered initial values.
+    fn get_custom_property_initial_values(&self) -> &ComputedCustomProperties;
+}
+
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.
 pub struct Context<'a> {
@@ -189,7 +203,7 @@ pub struct Context<'a> {
     ///
     /// See properties/longhands/font.mako.rs
     #[cfg(feature = "gecko")]
-    pub cached_system_font: Option<properties::gecko::system_font::ComputedSystemFont>,
+    pub cached_system_font: Option<properties::system_font::ComputedSystemFont>,
 
     /// A dummy option for servo so initializing a computed::Context isn't
     /// painful.
@@ -284,7 +298,7 @@ impl<'a> Context<'a> {
     /// specified.
     pub fn for_container_query_evaluation<F, R>(
         device: &Device,
-        stylist: Option<&Stylist>,
+        stylist: Option<&dyn CustomPropertyRegistry>,
         container_info_and_style: Option<(ContainerInfo, Arc<ComputedValues>)>,
         container_size_query: ContainerSizeQuery,
         element_context: &dyn ElementContext,
@@ -386,19 +400,21 @@ impl<'a> Context<'a> {
 
     /// Creates a context suitable for computing the initial value of @property.
     pub fn new_for_initial_at_property_value(
-        stylist: &'a Stylist,
+        device: &'a Device,
+        registry: &'a dyn CustomPropertyRegistry,
+        quirks_mode: QuirksMode,
         rule_cache_conditions: &'a mut RuleCacheConditions,
         tree_counting_caches: &'a mut TreeCountingCaches,
     ) -> Self {
         Self {
-            builder: StyleBuilder::new(stylist.device(), Some(stylist), None, None, None, false),
+            builder: StyleBuilder::new(device, Some(registry), None, None, None, false),
             cached_system_font: None,
             // Because font-relative values are disallowed in @property initial values, we do not
             // need to keep track of whether we're in a media query, whether we're in a container
             // query, and so on.
             in_media_query: false,
             in_container_query: false,
-            quirks_mode: stylist.quirks_mode(),
+            quirks_mode,
             container_info: None,
             for_animation: false,
             for_non_inherited_property: false,

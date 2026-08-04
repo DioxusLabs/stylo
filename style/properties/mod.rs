@@ -32,7 +32,6 @@ use crate::logical_geometry::WritingMode;
 use crate::parser::ParserContext;
 use crate::stylesheets::CssRuleType;
 use crate::stylesheets::Origin;
-use crate::stylist::Stylist;
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::{computed, serialize_atom_name};
 use arrayvec::{ArrayVec, Drain as ArrayVecDrain};
@@ -1087,7 +1086,7 @@ impl UnparsedValue {
         &self,
         longhand_id: LonghandId,
         substitution_functions: &ComputedSubstitutionFunctions,
-        stylist: &Stylist,
+        stylist: &dyn crate::values::computed::CustomPropertyRegistry,
         computed_context: &computed::Context,
         shorthand_cache: &'cache mut ShorthandsWithPropertyReferencesCache,
         attribute_tracker: &mut AttributeTracker,

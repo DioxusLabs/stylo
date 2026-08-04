@@ -19,7 +19,6 @@ use crate::properties_and_values::{
     },
 };
 use crate::stylesheets::UrlExtraData;
-use crate::stylist::Stylist;
 use crate::typed_om::{
     ToTyped, TypedValue, UnparsedSegment, UnparsedValue, VariableReferenceValue,
 };
@@ -1375,7 +1374,7 @@ pub fn substitute_references_if_needed_and_apply(
     name: &Name,
     kind: SubstitutionFunctionKind,
     value: &Arc<VariableValue>,
-    stylist: &Stylist,
+    stylist: &dyn crate::values::computed::CustomPropertyRegistry,
     context: &mut computed::Context,
     attribute_tracker: &mut AttributeTracker,
 ) {
@@ -1616,7 +1615,7 @@ fn do_substitute_chunk<'a>(
     last_token_type: TokenSerializationType,
     url_data: &UrlExtraData,
     substitution_functions: &'a ComputedSubstitutionFunctions,
-    stylist: &Stylist,
+    stylist: &dyn crate::values::computed::CustomPropertyRegistry,
     computed_context: &computed::Context,
     references: &'a [SubstitutionFunctionReference],
     attribute_tracker: &mut AttributeTracker,
@@ -1707,7 +1706,7 @@ fn substitute_one_reference<'a>(
     url_data: &UrlExtraData,
     substitution_functions: &'a ComputedSubstitutionFunctions,
     reference: &'a SubstitutionFunctionReference,
-    stylist: &Stylist,
+    stylist: &dyn crate::values::computed::CustomPropertyRegistry,
     computed_context: &computed::Context,
     attribute_tracker: &mut AttributeTracker,
     seen: &mut SmallVec<[&'a Name; 8]>,
@@ -1766,7 +1765,7 @@ fn substitute_one_reference<'a>(
             }
         },
         SubstitutionFunctionKind::Env => {
-            let device = stylist.device();
+            let device = computed_context.builder.device;
             device
                 .environment()
                 .get(&reference.name, device, url_data)
@@ -1891,7 +1890,7 @@ fn substitute_one_reference<'a>(
 fn substitute_internal<'a>(
     variable_value: &'a VariableValue,
     substitution_functions: &'a ComputedSubstitutionFunctions,
-    stylist: &Stylist,
+    stylist: &dyn crate::values::computed::CustomPropertyRegistry,
     computed_context: &computed::Context,
     attribute_tracker: &mut AttributeTracker,
     seen: &mut SmallVec<[&'a Name; 8]>,
@@ -1918,7 +1917,7 @@ fn substitute_internal<'a>(
 pub fn substitute<'a>(
     variable_value: &'a VariableValue,
     substitution_functions: &'a ComputedSubstitutionFunctions,
-    stylist: &Stylist,
+    stylist: &dyn crate::values::computed::CustomPropertyRegistry,
     computed_context: &computed::Context,
     attribute_tracker: &mut AttributeTracker,
 ) -> Result<SubstitutionResult<'a>, ()> {

@@ -303,17 +303,17 @@ impl Parse for Inherits {
 /// The SpecifiedValue is wrapped in an Arc to avoid copying when using it.
 pub type InitialValue = Arc<SpecifiedValue>;
 
-impl Parse for InitialValue {
+impl Parse for SpecifiedValue {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input.skip_whitespace();
-        Ok(Arc::new(SpecifiedValue::parse(
+        Ok(SpecifiedValue::parse(
             input,
             Some(&context.namespaces.prefixes),
             &context.url_data,
-        )?))
+        )?)
     }
 }
 

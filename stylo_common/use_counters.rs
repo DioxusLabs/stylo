@@ -4,8 +4,8 @@
 
 //! Various stuff for CSS property use counters.
 
-use crate::properties::{property_counts, CountedUnknownProperty, NonCustomPropertyId};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use style_traits::property_ids::{property_counts, CountedUnknownProperty, NonCustomPropertyId};
 
 #[cfg(target_pointer_width = "64")]
 const BITS_PER_ENTRY: usize = 64;

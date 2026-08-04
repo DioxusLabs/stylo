@@ -4,9 +4,8 @@
 
 //! A type to represent a namespace.
 
-use crate::derives::*;
 use crate::gecko_bindings::structs::nsAtom;
-use crate::string_cache::{Atom, WeakAtom};
+use crate::gecko_string_cache::{Atom, WeakAtom};
 use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use std::fmt;

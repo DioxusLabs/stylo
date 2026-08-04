@@ -18,11 +18,9 @@ use crate::stylesheets::{
     CssRule, CssRules, CustomMediaEvaluator, CustomMediaMap, Origin, UrlExtraData,
 };
 use crate::use_counters::UseCounters;
-use crate::{Namespace, Prefix};
 use cssparser::{Parser, ParserInput, StyleSheetParser};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -30,15 +28,7 @@ use style_traits::ParsingMode;
 
 use super::scope_rule::ImplicitScopeRoot;
 
-/// A set of namespaces applying to a given stylesheet.
-///
-/// The namespace id is used in gecko
-#[derive(Clone, Debug, Default, MallocSizeOf)]
-#[allow(missing_docs)]
-pub struct Namespaces {
-    pub default: Option<Namespace>,
-    pub prefixes: FxHashMap<Prefix, Namespace>,
-}
+pub use style_common::namespaces::Namespaces;
 
 /// The contents of a given stylesheet. This effectively maps to a
 /// StyleSheetInner in Gecko.

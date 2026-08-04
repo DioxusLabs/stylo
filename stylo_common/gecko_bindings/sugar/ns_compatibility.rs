@@ -4,8 +4,8 @@
 
 //! Little helper for `nsCompatibility`.
 
-use crate::context::QuirksMode;
 use crate::gecko_bindings::structs::nsCompatibility;
+use selectors::matching::QuirksMode;
 
 impl From<nsCompatibility> for QuirksMode {
     #[inline]

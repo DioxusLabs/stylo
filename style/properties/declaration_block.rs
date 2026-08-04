@@ -16,7 +16,7 @@ use crate::context::{QuirksMode, TreeCountingCaches};
 use crate::custom_properties;
 use crate::derives::*;
 use crate::dom::{AttributeTracker, DummyElementContext};
-use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
+use crate::error_reporting::{ContextualParseError, ParseErrorReporter, SelectorWarningKind};
 use crate::parser::ParserContext;
 use crate::properties::{
     animated_properties::{AnimationValue, AnimationValueMap},
@@ -1745,7 +1745,11 @@ fn report_one_css_error<'i>(
     }
 
     let location = error.location;
-    let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error, selectors);
+    let error = ContextualParseError::UnsupportedPropertyDeclaration(
+        slice,
+        error,
+        SelectorWarningKind::from_selector_lists(selectors),
+    );
     context.log_css_error(location, error);
 }
 

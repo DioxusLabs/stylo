@@ -6,20 +6,20 @@
 
 #![deny(missing_docs)]
 
-use crate::selector_parser::SelectorImpl;
-use crate::stylesheets::UrlExtraData;
+use crate::url_extra_data::UrlExtraData;
 use cssparser::{BasicParseErrorKind, ParseErrorKind, SourceLocation, Token};
-use selectors::parser::{Combinator, Component, RelativeSelector, Selector};
+use selectors::parser::{Combinator, Component, RelativeSelector, Selector, SelectorImpl};
 use selectors::visitor::{SelectorListKind, SelectorVisitor};
 use selectors::SelectorList;
 use std::fmt;
+use std::marker::PhantomData;
 use style_traits::ParseError;
 
 /// Errors that can be encountered while parsing CSS.
 #[derive(Debug)]
 pub enum ContextualParseError<'a> {
     /// A property declaration was not recognized.
-    UnsupportedPropertyDeclaration(&'a str, ParseError<'a>, &'a [SelectorList<SelectorImpl>]),
+    UnsupportedPropertyDeclaration(&'a str, ParseError<'a>, Vec<SelectorWarningKind>),
     /// A property descriptor was not recognized.
     UnsupportedPropertyDescriptor(&'a str, ParseError<'a>),
     /// A font face descriptor was not recognized.
@@ -131,7 +131,7 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
         }
 
         match *self {
-            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err, _selectors) => {
+            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err, ref _warnings) => {
                 write!(f, "Unsupported property declaration: '{}', ", decl)?;
                 parse_error_to_str(err, f)
             },
@@ -298,8 +298,23 @@ pub enum SelectorWarningKind {
 }
 
 impl SelectorWarningKind {
+    /// Get all warnings for the selectors in the given lists.
+    pub fn from_selector_lists<Impl: SelectorImpl>(lists: &[SelectorList<Impl>]) -> Vec<Self> {
+        let mut result: Vec<Self> = vec![];
+        for list in lists {
+            for selector in list.slice() {
+                for warning in Self::from_selector(selector) {
+                    if !result.contains(&warning) {
+                        result.push(warning);
+                    }
+                }
+            }
+        }
+        result
+    }
+
     /// Get all warnings for this selector.
-    pub fn from_selector(selector: &Selector<SelectorImpl>) -> Vec<Self> {
+    pub fn from_selector<Impl: SelectorImpl>(selector: &Selector<Impl>) -> Vec<Self> {
         let mut result = vec![];
         if UnconstrainedRelativeSelectorVisitor::has_warning(selector, 0, false) {
             result.push(SelectorWarningKind::UnconstraintedRelativeSelector);
@@ -332,22 +347,20 @@ impl PerCompoundState {
 }
 
 /// Visitor to check if there's any unconstrained relative selector.
-struct UnconstrainedRelativeSelectorVisitor {
+struct UnconstrainedRelativeSelectorVisitor<Impl> {
     compound_state: PerCompoundState,
+    _marker: PhantomData<Impl>,
 }
 
-impl UnconstrainedRelativeSelectorVisitor {
+impl<Impl: SelectorImpl> UnconstrainedRelativeSelectorVisitor<Impl> {
     fn new(in_relative_selector: bool) -> Self {
         Self {
             compound_state: PerCompoundState::new(in_relative_selector),
+            _marker: PhantomData,
         }
     }
 
-    fn has_warning(
-        selector: &Selector<SelectorImpl>,
-        offset: usize,
-        in_relative_selector: bool,
-    ) -> bool {
+    fn has_warning(selector: &Selector<Impl>, offset: usize, in_relative_selector: bool) -> bool {
         let relative_selector = matches!(
             selector.iter_raw_parse_order_from(0).next().unwrap(),
             Component::RelativeSelectorAnchor
@@ -384,8 +397,8 @@ impl UnconstrainedRelativeSelectorVisitor {
     }
 }
 
-impl SelectorVisitor for UnconstrainedRelativeSelectorVisitor {
-    type Impl = SelectorImpl;
+impl<Impl: SelectorImpl> SelectorVisitor for UnconstrainedRelativeSelectorVisitor<Impl> {
+    type Impl = Impl;
 
     fn visit_simple_selector(&mut self, c: &Component<Self::Impl>) -> bool {
         match c {
@@ -463,19 +476,21 @@ impl SelectorVisitor for UnconstrainedRelativeSelectorVisitor {
     }
 }
 
-struct SiblingCombinatorAfterScopeSelectorVisitor {
+struct SiblingCombinatorAfterScopeSelectorVisitor<Impl> {
     right_combinator_is_sibling: bool,
     found: bool,
+    _marker: PhantomData<Impl>,
 }
 
-impl SiblingCombinatorAfterScopeSelectorVisitor {
+impl<Impl: SelectorImpl> SiblingCombinatorAfterScopeSelectorVisitor<Impl> {
     fn new(right_combinator_is_sibling: bool) -> Self {
         Self {
             right_combinator_is_sibling,
             found: false,
+            _marker: PhantomData,
         }
     }
-    fn has_warning(selector: &Selector<SelectorImpl>) -> bool {
+    fn has_warning(selector: &Selector<Impl>) -> bool {
         if !selector.has_scope_selector() {
             return false;
         }
@@ -483,14 +498,14 @@ impl SiblingCombinatorAfterScopeSelectorVisitor {
         visitor.find_never_matching_scope_selector(selector)
     }
 
-    fn find_never_matching_scope_selector(mut self, selector: &Selector<SelectorImpl>) -> bool {
+    fn find_never_matching_scope_selector(mut self, selector: &Selector<Impl>) -> bool {
         selector.visit(&mut self);
         self.found
     }
 }
 
-impl SelectorVisitor for SiblingCombinatorAfterScopeSelectorVisitor {
-    type Impl = SelectorImpl;
+impl<Impl: SelectorImpl> SelectorVisitor for SiblingCombinatorAfterScopeSelectorVisitor<Impl> {
+    type Impl = Impl;
 
     fn visit_simple_selector(&mut self, c: &Component<Self::Impl>) -> bool {
         if !matches!(c, Component::Scope | Component::ImplicitScope) {

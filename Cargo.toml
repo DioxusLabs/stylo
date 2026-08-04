@@ -9,6 +9,7 @@ members = [
     "servo_arc",
     "style",
     "stylo_build",
+    "stylo_common",
     "style_derive",
     "stylo_static_prefs",
     "style_traits",
@@ -36,3 +37,4 @@ style_traits    = { version = "0.20.0", path = "./style_traits", features = ["se
 style_derive    = { version = "0.20.0", path = "./style_derive", package = "stylo_derive"}
 stylo           = { version = "0.20.0", path = "./style" }
 stylo_build     = { version = "0.20.0", path = "./stylo_build" }
+style_common    = { version = "0.20.0", path = "./stylo_common", package = "stylo_common", default-features = false }

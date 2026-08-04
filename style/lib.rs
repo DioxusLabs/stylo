@@ -35,8 +35,7 @@ extern crate bitflags;
 #[cfg(feature = "gecko")]
 extern crate gecko_profiler;
 #[cfg(feature = "gecko")]
-#[macro_use]
-pub mod gecko_string_cache;
+pub use style_common::gecko_string_cache;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -78,12 +77,11 @@ pub mod device;
 pub mod dom;
 pub mod dom_apis;
 pub mod driver;
-pub mod error_reporting;
+pub use style_common::error_reporting;
 pub mod font_face;
 pub mod font_metrics;
 #[cfg(feature = "gecko")]
-#[allow(unsafe_code)]
-pub mod gecko_bindings;
+pub use style_common::gecko_bindings;
 pub mod global_style_data;
 pub mod invalidation;
 #[allow(missing_docs)] // TODO.
@@ -91,7 +89,7 @@ pub mod logical_geometry;
 pub mod matching;
 pub mod media_queries;
 pub mod parallel;
-pub mod parser;
+pub use style_common::parser;
 pub mod piecewise_linear;
 pub mod properties_and_values;
 #[macro_use]
@@ -102,7 +100,7 @@ pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_map;
 pub mod selector_parser;
-pub mod shared_lock;
+pub use style_common::shared_lock;
 pub mod sharing;
 mod simple_buckets_map;
 pub mod str;
@@ -111,12 +109,12 @@ pub mod style_resolver;
 pub mod stylesheet_set;
 pub mod stylesheets;
 pub mod stylist;
-pub mod thread_state;
+pub use style_common::thread_state;
 pub mod traversal;
 pub mod traversal_flags;
 pub mod typed_om;
 pub mod url;
-pub mod use_counters;
+pub use style_common::use_counters;
 
 #[macro_use]
 #[allow(non_camel_case_types)]
@@ -132,31 +130,9 @@ pub mod docs {
     }
 }
 
+pub use style_common::atom_types::{Atom, LocalName, Namespace, Prefix};
 #[cfg(feature = "gecko")]
-pub use crate::gecko_string_cache as string_cache;
-#[cfg(feature = "gecko")]
-pub use crate::gecko_string_cache::Atom;
-/// The namespace prefix type for Gecko, which is just an atom.
-#[cfg(feature = "gecko")]
-pub type Prefix = crate::values::AtomIdent;
-/// The local name of an element for Gecko, which is just an atom.
-#[cfg(feature = "gecko")]
-pub type LocalName = crate::values::AtomIdent;
-#[cfg(feature = "gecko")]
-pub use crate::gecko_string_cache::Namespace;
-
-#[cfg(feature = "servo")]
-pub use stylo_atoms::Atom;
-
-#[cfg(feature = "servo")]
-#[allow(missing_docs)]
-pub type LocalName = crate::values::GenericAtomIdent<web_atoms::LocalNameStaticSet>;
-#[cfg(feature = "servo")]
-#[allow(missing_docs)]
-pub type Namespace = crate::values::GenericAtomIdent<web_atoms::NamespaceStaticSet>;
-#[cfg(feature = "servo")]
-#[allow(missing_docs)]
-pub type Prefix = crate::values::GenericAtomIdent<web_atoms::PrefixStaticSet>;
+pub use style_common::gecko_string_cache as string_cache;
 
 pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_array::OwnedArray;

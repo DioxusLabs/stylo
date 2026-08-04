@@ -89,7 +89,7 @@ pub mod logical_geometry;
 pub mod matching;
 pub mod media_queries;
 pub mod parallel;
-pub mod parser;
+pub use style_common::parser;
 pub mod piecewise_linear;
 pub mod properties_and_values;
 #[macro_use]
@@ -130,31 +130,9 @@ pub mod docs {
     }
 }
 
+pub use style_common::atom_types::{Atom, LocalName, Namespace, Prefix};
 #[cfg(feature = "gecko")]
-pub use crate::gecko_string_cache as string_cache;
-#[cfg(feature = "gecko")]
-pub use crate::gecko_string_cache::Atom;
-/// The namespace prefix type for Gecko, which is just an atom.
-#[cfg(feature = "gecko")]
-pub type Prefix = crate::values::AtomIdent;
-/// The local name of an element for Gecko, which is just an atom.
-#[cfg(feature = "gecko")]
-pub type LocalName = crate::values::AtomIdent;
-#[cfg(feature = "gecko")]
-pub use crate::gecko_string_cache::Namespace;
-
-#[cfg(feature = "servo")]
-pub use stylo_atoms::Atom;
-
-#[cfg(feature = "servo")]
-#[allow(missing_docs)]
-pub type LocalName = crate::values::GenericAtomIdent<web_atoms::LocalNameStaticSet>;
-#[cfg(feature = "servo")]
-#[allow(missing_docs)]
-pub type Namespace = crate::values::GenericAtomIdent<web_atoms::NamespaceStaticSet>;
-#[cfg(feature = "servo")]
-#[allow(missing_docs)]
-pub type Prefix = crate::values::GenericAtomIdent<web_atoms::PrefixStaticSet>;
+pub use style_common::gecko_string_cache as string_cache;
 
 pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_array::OwnedArray;

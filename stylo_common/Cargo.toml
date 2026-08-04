@@ -51,6 +51,7 @@ derive_more = { version = "2", features = ["deref"] }
 log = "0.4"
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = "0.1"
+precomputed-hash = "0.1.1"
 rustc-hash = "2.1.1"
 selectors = { workspace = true }
 servo_arc = { workspace = true }

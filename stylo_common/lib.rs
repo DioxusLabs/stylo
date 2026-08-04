@@ -27,6 +27,8 @@ mod derives {
     pub(crate) use to_shmem_derive::ToShmem;
 }
 
+pub mod atom_types;
+pub mod attr_taint;
 pub mod error_reporting;
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code)]
@@ -34,6 +36,8 @@ pub mod gecko_bindings;
 #[cfg(feature = "gecko")]
 #[macro_use]
 pub mod gecko_string_cache;
+pub mod namespaces;
+pub mod parser;
 pub mod shared_lock;
 pub mod thread_state;
 pub mod url_extra_data;

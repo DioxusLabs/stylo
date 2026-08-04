@@ -4,14 +4,17 @@
 
 //! The context within which CSS code is parsed.
 
-use crate::context::QuirksMode;
-use crate::custom_properties::{AttrTaint, AttrTaintedRange};
+use crate::attr_taint::{AttrTaint, AttrTaintedRange};
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
-use crate::stylesheets::{CssRuleType, CssRuleTypes, Namespaces, Origin, UrlExtraData};
+use crate::namespaces::Namespaces;
+use crate::url_extra_data::UrlExtraData;
 use crate::use_counters::UseCounters;
 use cssparser::{Parser, SourceLocation, UnicodeRange};
+use selectors::matching::QuirksMode;
 use selectors::parser::ParseRelative;
 use std::borrow::Cow;
+use style_traits::origin::Origin;
+use style_traits::rule_types::{CssRuleType, CssRuleTypes};
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
 
 /// Nesting context for parsing rules.
@@ -272,7 +275,19 @@ where
     }
 }
 
-impl Parse for crate::OwnedStr {
+impl<T> Parse for servo_arc::Arc<T>
+where
+    T: Parse,
+{
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        T::parse(context, input).map(servo_arc::Arc::new)
+    }
+}
+
+impl Parse for style_traits::owned_str::OwnedStr {
     fn parse<'i, 't>(
         _: &ParserContext,
         input: &mut Parser<'i, 't>,

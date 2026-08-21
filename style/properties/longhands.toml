@@ -100,7 +100,7 @@ affects = "layout"
 type = "LineClamp"
 initial = "computed::LineClamp::none()"
 struct = "box"
-engine = "gecko"
+servo_pref = "layout.unimplemented"
 spec = "https://drafts.csswg.org/css-overflow-3/#line-clamp"
 affects = "layout"
 
@@ -4169,7 +4169,7 @@ keyword = { values = ["normal", "reverse"] }
 
 [-moz-box-orient]
 struct = "xul"
-engine = "gecko"
+servo_pref = "layout.unimplemented"
 spec = "Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-orient)"
 animation_type = "discrete"
 affects = "layout"

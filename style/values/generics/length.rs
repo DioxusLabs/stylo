@@ -183,6 +183,7 @@ pub enum GenericSize<LengthPercent> {
     AnchorContainingCalcFunction(LengthPercent),
 }
 
+#[cfg(feature = "specified_value_info")]
 impl<LengthPercent> SpecifiedValueInfo for GenericSize<LengthPercent>
 where
     LengthPercent: SpecifiedValueInfo,
@@ -262,6 +263,7 @@ pub enum GenericMaxSize<LengthPercent> {
     AnchorContainingCalcFunction(LengthPercent),
 }
 
+#[cfg(feature = "specified_value_info")]
 impl<LP> SpecifiedValueInfo for GenericMaxSize<LP>
 where
     LP: SpecifiedValueInfo,
@@ -629,6 +631,7 @@ impl<LP> GenericMargin<LP> {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl<LP> SpecifiedValueInfo for GenericMargin<LP>
 where
     LP: SpecifiedValueInfo,

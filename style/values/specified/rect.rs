@@ -4,6 +4,7 @@
 
 //! Specified types for CSS borders.
 
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::generics::rect::Rect;
 use crate::values::specified::length::NonNegativeLengthOrNumber;
@@ -12,6 +13,7 @@ use thin_vec::ThinVec;
 /// A specified rectangle made of four `<length-or-number>` values.
 pub type NonNegativeLengthOrNumberRect = Rect<NonNegativeLengthOrNumber>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for NonNegativeLengthOrNumberRect {
     // Note: The specification does not currently define how border image
     // outset should be reified into Typed OM. The current behavior follows

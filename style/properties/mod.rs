@@ -32,6 +32,7 @@ use crate::parser::ParserContext;
 use crate::stylesheets::CssRuleType;
 use crate::stylesheets::Origin;
 use crate::stylist::Stylist;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::{computed, serialize_atom_name};
 use arrayvec::{ArrayVec, Drain as ArrayVecDrain};
@@ -159,6 +160,7 @@ pub struct WideKeywordDeclaration {
 
 // XXX Switch back to ToTyped derive once it can automatically handle structs
 // Tracking in bug 1991631
+#[cfg(feature = "typed_om")]
 impl ToTyped for WideKeywordDeclaration {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         self.keyword.to_typed(dest)
@@ -333,7 +335,7 @@ impl NonCustomPropertyId {
 
     #[cfg(feature = "servo")]
     /// Iterate over all non-custom properties in arbitrary order.
-    pub fn iter() -> impl Iterator<Item=Self> {
+    pub fn iter() -> impl Iterator<Item = Self> {
         (0..property_counts::NON_CUSTOM as u16).map(|index| Self(index))
     }
 }
@@ -550,6 +552,7 @@ impl PropertyId {
 
     /// Whether the property supports the given CSS type.
     /// `ty` should a bitflags of constants in style_traits::CssType.
+    #[cfg(feature = "specified_value_info")]
     pub fn supports_type(&self, ty: u8) -> bool {
         let id = self.non_custom_non_alias_id();
         id.map_or(0, |id| id.supported_types()) & ty != 0
@@ -559,6 +562,7 @@ impl PropertyId {
     ///
     /// See style_traits::SpecifiedValueInfo::collect_completion_keywords for more
     /// details.
+    #[cfg(feature = "specified_value_info")]
     pub fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
         if let Some(id) = self.non_custom_non_alias_id() {
             id.collect_property_completion_keywords(f);
@@ -1544,6 +1548,7 @@ impl ToCss for UnparsedValue {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for UnparsedValue {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         if self.from_shorthand.is_none() {

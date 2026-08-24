@@ -8,6 +8,7 @@ use crate::derives::*;
 pub use crate::logical_geometry::WritingModeProperty;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::{LonghandId, PropertyDeclarationId, PropertyId};
+#[cfg(feature = "typed_om")]
 pub use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::generics::box_::{
     BaselineShiftKeyword, GenericBaselineShift, GenericContainIntrinsicSize, GenericLineClamp,
@@ -534,6 +535,7 @@ impl ToCss for Display {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Display {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         // Note: The specification does not currently define how display multi
@@ -610,6 +612,7 @@ impl Parse for Display {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Display {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         f(&[

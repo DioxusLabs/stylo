@@ -282,6 +282,7 @@ impl ContentDistribution {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for ContentDistribution {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         f(&["normal"]);
@@ -424,6 +425,7 @@ impl SelfAlignment {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for SelfAlignment {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         // TODO: This technically lists left/right for align-self. Not amazing but also not sure
@@ -514,6 +516,7 @@ impl ItemPlacement {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for ItemPlacement {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         list_baseline_keywords(f);
@@ -567,6 +570,7 @@ impl Parse for JustifyItems {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for JustifyItems {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         ItemPlacement::collect_completion_keywords(f);

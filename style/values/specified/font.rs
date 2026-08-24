@@ -626,6 +626,7 @@ impl KeywordInfo {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for KeywordInfo {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         <FontSizeKeyword as SpecifiedValueInfo>::collect_completion_keywords(f);
@@ -722,6 +723,7 @@ impl Parse for FontFamily {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for FontFamily {}
 
 /// `FamilyName::parse` is based on `SingleFontFamily::parse` and not the other
@@ -1195,7 +1197,7 @@ impl FontVariantAlternates {
     }
 
     /// Iterates over all alternates in the list.
-    pub fn iter(&self) -> impl Iterator<Item=&VariantAlternates> {
+    pub fn iter(&self) -> impl Iterator<Item = &VariantAlternates> {
         self.0.iter()
     }
 

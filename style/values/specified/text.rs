@@ -1280,6 +1280,7 @@ impl ToCss for RubyPosition {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for RubyPosition {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         f(&["alternate", "over", "under"])

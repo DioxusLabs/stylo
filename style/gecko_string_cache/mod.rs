@@ -530,4 +530,5 @@ impl From<String> for Atom {
 
 malloc_size_of::malloc_size_of_is_0!(Atom);
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Atom {}

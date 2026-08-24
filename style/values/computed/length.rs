@@ -7,6 +7,7 @@
 use super::{Number, ToComputedValue};
 use crate::derives::*;
 use crate::logical_geometry::PhysicalSide;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::animated::{Context as AnimatedContext, ToAnimatedValue};
 use crate::values::computed::position::TryTacticAdjustment;
@@ -273,6 +274,7 @@ impl ToCss for CSSPixelLength {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for CSSPixelLength {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         dest.push(TypedValue::Numeric(NumericValue::Unit(UnitValue {

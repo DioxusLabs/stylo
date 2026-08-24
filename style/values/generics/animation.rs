@@ -5,6 +5,7 @@
 //! Generic values for properties related to animations and transitions.
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::generics::length::GenericLengthPercentageOrAuto;
 use crate::values::specified::animation::{
@@ -76,6 +77,7 @@ impl<T: ToCss + Zero> ToCss for AnimationDuration<T> {
 }
 
 // TODO: Switch to ToTyped derive once the pref goes away.
+#[cfg(feature = "typed_om")]
 impl<T: ToTyped + Zero> ToTyped for AnimationDuration<T> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match *self {
@@ -215,6 +217,7 @@ where
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<LengthPercent> ToTyped for ViewTimelineInset<LengthPercent> where
     LengthPercent: PartialEq + ToTyped
 {

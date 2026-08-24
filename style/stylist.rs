@@ -2778,7 +2778,7 @@ struct GenericElementAndPseudoRules<Map> {
     pseudos_map: PerPseudoElementMap<Self>,
 }
 
-impl<Map: Default + MallocSizeOf> GenericElementAndPseudoRules<Map> {
+impl<Map: Default> GenericElementAndPseudoRules<Map> {
     #[inline(always)]
     fn for_insertion<'a>(&mut self, pseudo_elements: &[&'a PseudoElement]) -> &mut Map {
         let mut current = self;
@@ -2806,9 +2806,11 @@ impl<Map: Default + MallocSizeOf> GenericElementAndPseudoRules<Map> {
         }
         Some(&current.element_map)
     }
+}
 
+#[cfg(feature = "gecko")]
+impl<Map: Default + MallocSizeOf> GenericElementAndPseudoRules<Map> {
     /// Measures heap usage.
-    #[cfg(feature = "gecko")]
     fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         sizes.mElementAndPseudosMaps += self.element_map.size_of(ops);
 

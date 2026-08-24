@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::computed::angle::Angle as ComputedAngle;
 use crate::values::computed::{Context, ToComputedValue};
@@ -98,6 +99,7 @@ impl ToCss for NoCalcAngle {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for NoCalcAngle {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         let numeric_type = NumericType::angle();
@@ -112,6 +114,7 @@ impl ToTyped for NoCalcAngle {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for NoCalcAngle {}
 
 impl NoCalcAngle {
@@ -226,6 +229,7 @@ impl ToCss for Angle {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Angle {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.0.unpack() {
@@ -235,6 +239,7 @@ impl ToTyped for Angle {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Angle {}
 
 /// Whether to allow parsing an unitless zero as a valid angle.

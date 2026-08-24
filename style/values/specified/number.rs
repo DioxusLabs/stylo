@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::computed::transform::DirectionVector;
 use crate::values::computed::{Context, ToComputedValue};
@@ -156,6 +157,7 @@ impl ToCss for Number {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Number {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.0.unpack() {
@@ -295,6 +297,7 @@ impl IsParallelTo for (Number, Number, Number) {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Number {}
 
 impl Zero for Number {
@@ -499,6 +502,7 @@ impl ToCss for Integer {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Integer {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.0.unpack() {
@@ -535,6 +539,7 @@ impl ToComputedValue for Integer {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Integer {}
 
 /// An Integer which is >= 1. For calc expressions that couldn't be resolved at parse time,

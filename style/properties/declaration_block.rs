@@ -30,6 +30,7 @@ use crate::shared_lock::Locked;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use crate::stylist::Stylist;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::TypedValueList;
 use crate::values::computed::Context;
 use cssparser::{
@@ -250,6 +251,7 @@ pub struct PropertyDeclarationBlock {
     pub immutable: AtomicBool,
 }
 
+#[cfg(feature = "to_shmem")]
 impl to_shmem::ToShmem for PropertyDeclarationBlock {
     fn to_shmem(&self, builder: &mut to_shmem::SharedMemoryBuilder) -> to_shmem::Result<Self> {
         use std::mem::ManuallyDrop;
@@ -633,6 +635,7 @@ impl PropertyDeclarationBlock {
     /// Find the value of the given property in this block and reify it.
     /// Returns `Err(())` if the property is not present in this declaration
     /// block.
+    #[cfg(feature = "typed_om")]
     pub fn property_value_to_typed_value_list(
         &self,
         property: &PropertyId,

@@ -5,6 +5,7 @@
 //! Generic values for UI properties.
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ToTyped, TypedValue};
 use crate::values::specified::ui::CursorKind;
 use std::fmt::{self, Write};
@@ -58,6 +59,7 @@ impl<Image: ToCss> ToCss for Cursor<Image> {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<Image> ToTyped for Cursor<Image> {
     // Note: The specification does not currently define how cursor should be
     // reified into Typed OM. The current behavior follows existing WPT

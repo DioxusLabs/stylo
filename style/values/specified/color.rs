@@ -10,6 +10,7 @@ use crate::color::{parsing, AbsoluteColor, ColorFunction, ColorMixItemList, Colo
 use crate::derives::*;
 use crate::device::Device;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::computed::{
     Color as ComputedColor, Context, Percentage as ComputedPercentage, ToComputedValue,
@@ -690,6 +691,7 @@ impl ToCss for Color {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Color {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match *self {
@@ -956,6 +958,7 @@ impl ToComputedValue for Color {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Color {
     const SUPPORTED_TYPES: u8 = CssType::COLOR;
 

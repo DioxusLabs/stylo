@@ -5,6 +5,7 @@
 //! Computed time values.
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::CSSFloat;
 use crate::Zero;
@@ -55,6 +56,7 @@ impl ToCss for Time {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Time {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         dest.push(TypedValue::Numeric(NumericValue::Unit(UnitValue {

@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{NumericType, NumericValue, ToTyped, TypedValue, UnitValue};
 use crate::values::computed::time::Time as ComputedTime;
 use crate::values::computed::{Context, ToComputedValue};
@@ -148,6 +149,7 @@ impl ToComputedValue for NoCalcTime {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for NoCalcTime {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         let numeric_value = NumericValue::Unit(UnitValue {
@@ -163,6 +165,7 @@ impl ToTyped for NoCalcTime {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for NoCalcTime {}
 
 /// A specified time value, either a plain value or a `calc()` expression.
@@ -181,6 +184,7 @@ impl ToCss for Time {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Time {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self.0.unpack() {
@@ -190,6 +194,7 @@ impl ToTyped for Time {
     }
 }
 
+#[cfg(feature = "specified_value_info")]
 impl SpecifiedValueInfo for Time {}
 
 impl Time {

@@ -5,6 +5,7 @@
 //! Generic types for CSS values that are related to transformations.
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{
     KeywordValue, MatrixComponent, NumericValue, PerspectiveComponent, PerspectiveValue,
     RotateComponent, ScaleComponent, SkewComponent, ToTyped, TransformComponent,
@@ -326,6 +327,7 @@ where
 pub use self::GenericTransformOperation as TransformOperation;
 
 /// Converts a transform operation into a transform component.
+#[cfg(feature = "typed_om")]
 pub trait ToTransformComponent {
     /// Attempt to convert `self` into a transform component.
     ///
@@ -335,6 +337,7 @@ pub trait ToTransformComponent {
     fn to_transform_component(&self, _dest: &mut ThinVec<TransformComponent>) -> Result<(), ()>;
 }
 
+#[cfg(feature = "typed_om")]
 impl<Angle, Number, Length, Integer, LengthPercentage> ToTransformComponent
     for TransformOperation<Angle, Number, Length, Integer, LengthPercentage>
 where
@@ -509,6 +512,7 @@ pub struct GenericTransform<T>(#[css(if_empty = "none", iterable)] pub crate::Ow
 
 pub use self::GenericTransform as Transform;
 
+#[cfg(feature = "typed_om")]
 impl<T: ToTransformComponent> ToTyped for Transform<T> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         if self.0.is_empty() {

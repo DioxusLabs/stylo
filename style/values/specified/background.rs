@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
 use crate::values::specified::length::{
@@ -115,6 +116,7 @@ impl ToCss for BackgroundRepeat {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for BackgroundRepeat {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match (self.0, self.1) {

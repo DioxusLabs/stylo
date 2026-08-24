@@ -417,6 +417,7 @@ pub enum GenericInset<P, LP> {
     AnchorContainingCalcFunction(LP),
 }
 
+#[cfg(feature = "specified_value_info")]
 impl<P, LP> SpecifiedValueInfo for GenericInset<P, LP>
 where
     LP: SpecifiedValueInfo,

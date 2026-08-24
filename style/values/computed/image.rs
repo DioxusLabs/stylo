@@ -8,6 +8,7 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use crate::derives::*;
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{ImageValue, KeywordValue, ToTyped, TypedValue};
 use crate::values::computed::percentage::Percentage;
 use crate::values::computed::position::Position;
@@ -25,12 +26,13 @@ use std::fmt::{self, Write};
 use style_traits::{CssString, CssWriter, ToCss};
 use thin_vec::ThinVec;
 
-pub use specified::{ImageRendering, ImageDecoding};
+pub use specified::{ImageDecoding, ImageRendering};
 
 /// Computed values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = generic::GenericImage<Gradient, ComputedUrl, Color, Percentage, Resolution>;
 
+#[cfg(feature = "typed_om")]
 impl ToTyped for Image {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match *self {

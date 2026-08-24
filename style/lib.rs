@@ -26,6 +26,17 @@
 //! [selectors]: ../selectors/index.html
 
 #![deny(missing_docs)]
+// When the optional derive features are disabled, some imports and helpers
+// that only exist to support those derives become unused.
+#![cfg_attr(
+    not(all(
+        feature = "malloc_size_of",
+        feature = "to_shmem",
+        feature = "specified_value_info",
+        feature = "typed_om"
+    )),
+    allow(unused_imports, dead_code)
+)]
 
 pub(crate) use cssparser;
 
@@ -53,13 +64,31 @@ mod macros;
 
 mod derives {
     pub(crate) use derive_more::{Add, AddAssign, Deref, DerefMut, From};
-    pub(crate) use malloc_size_of_derive::MallocSizeOf;
     pub(crate) use num_derive::FromPrimitive;
     pub(crate) use style_derive::{
-        Animate, ComputeSquaredDistance, Parse, SpecifiedValueInfo, ToAnimatedValue,
-        ToAnimatedZero, ToComputedValue, ToCss, ToResolvedValue, ToTyped,
+        Animate, ComputeSquaredDistance, Parse, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+        ToCss, ToResolvedValue,
     };
+
+    #[cfg(feature = "malloc_size_of")]
+    pub(crate) use malloc_size_of_derive::MallocSizeOf;
+    #[cfg(not(feature = "malloc_size_of"))]
+    pub(crate) use style_derive::NoopMallocSizeOf as MallocSizeOf;
+
+    #[cfg(not(feature = "to_shmem"))]
+    pub(crate) use style_derive::NoopToShmem as ToShmem;
+    #[cfg(feature = "to_shmem")]
     pub(crate) use to_shmem_derive::ToShmem;
+
+    #[cfg(not(feature = "specified_value_info"))]
+    pub(crate) use style_derive::NoopSpecifiedValueInfo as SpecifiedValueInfo;
+    #[cfg(feature = "specified_value_info")]
+    pub(crate) use style_derive::SpecifiedValueInfo;
+
+    #[cfg(not(feature = "typed_om"))]
+    pub(crate) use style_derive::NoopToTyped as ToTyped;
+    #[cfg(feature = "typed_om")]
+    pub(crate) use style_derive::ToTyped;
 }
 
 pub mod applicable_declarations;
@@ -114,6 +143,7 @@ pub mod stylist;
 pub mod thread_state;
 pub mod traversal;
 pub mod traversal_flags;
+#[cfg(feature = "typed_om")]
 pub mod typed_om;
 pub mod url;
 pub mod use_counters;

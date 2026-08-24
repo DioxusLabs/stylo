@@ -19,7 +19,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-default = ["servo"]
+default = ["servo", "malloc_size_of", "to_shmem", "specified_value_info", "typed_om"]
 gecko = [
     "bindgen",
     "malloc_size_of/gecko",
@@ -29,8 +29,11 @@ gecko = [
     "serde",
     "style_traits/gecko",
     "toml",
-    "selectors/to_shmem",
+    "to_shmem",
     "to_shmem/gecko",
+    "malloc_size_of",
+    "specified_value_info",
+    "typed_om",
 ]
 servo = [
     "cssparser/serde",
@@ -44,9 +47,16 @@ servo = [
     "string_cache",
     "style_traits/servo",
     "url",
-    "selectors/to_shmem",
     "to_shmem/servo",
 ]
+# Optional heavy derives. These are enabled by default (and by the "gecko"
+# feature), but can be disabled (with default-features = false) to
+# significantly reduce compile times when the corresponding functionality
+# is not needed.
+malloc_size_of = []
+to_shmem = ["selectors/to_shmem"]
+specified_value_info = []
+typed_om = []
 gecko_debug = []
 gecko_refcount_logging = []
 nsstring = []

@@ -6,6 +6,7 @@
 
 use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "typed_om")]
 use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::animated::ToAnimatedZero;
 use crate::{One, Zero};
@@ -319,6 +320,7 @@ impl<Factor: ToCss> ToCss for GenericFontSizeAdjust<Factor> {
     }
 }
 
+#[cfg(feature = "typed_om")]
 impl<Factor: ToTyped> ToTyped for GenericFontSizeAdjust<Factor> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
         match self {

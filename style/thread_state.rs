@@ -11,7 +11,7 @@ use std::cell::Cell;
 
 bitflags! {
     /// A thread state flag, used for multiple assertions.
-    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
+    #[derive(Clone, Copy, Default, Eq, PartialEq)]
     pub struct ThreadState: u32 {
         /// Whether we're in a script thread.
         const SCRIPT          = 0x01;

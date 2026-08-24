@@ -6,6 +6,7 @@
 
 pub mod cascade;
 pub mod declaration_block;
+pub mod longhand_lists;
 pub mod shorthands;
 
 pub use self::cascade::*;
@@ -19,6 +20,34 @@ pub use self::generated::*;
 #[deny(missing_docs)]
 pub mod generated {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
+}
+
+/// Common imports for the generated per-longhand modules.
+pub mod longhand_prelude {
+    pub(crate) use crate::derives::*;
+    pub use crate::parser::{Parse, ParserContext};
+    pub use crate::properties::{
+        longhands, CSSWideKeyword, LonghandId, PropertyDeclaration,
+    };
+    pub use crate::values::computed::ToComputedValue;
+    pub use crate::values::specified::AllowQuirks;
+    pub use crate::values::{computed, generics, specified};
+    pub use crate::Zero;
+    pub use app_units::Au;
+    pub use cssparser::Parser;
+    pub use servo_arc::Arc;
+    pub use smallvec::SmallVec;
+    pub use style_traits::ParseError;
+}
+
+/// Common imports for the generated per-shorthand modules.
+pub mod shorthand_prelude {
+    pub(crate) use crate::derives::*;
+    pub use crate::parser::ParserContext;
+    pub use crate::properties::{longhands, PropertyDeclaration, SourcePropertyDeclaration};
+    pub use cssparser::Parser;
+    pub use std::fmt::{self, Write};
+    pub use style_traits::{CssWriter, ParseError, ToCss};
 }
 
 use crate::applicable_declarations::RevertKind;
@@ -838,6 +867,85 @@ impl PropertyDeclaration {
     #[inline]
     pub fn css_wide_keyword(id: LonghandId, keyword: CSSWideKeyword) -> Self {
         Self::CSSWideKeyword(WideKeywordDeclaration { id, keyword })
+    }
+
+    /// Handles the parts of cascading a longhand declaration that are shared
+    /// between all longhands: dealing with CSS-wide keywords and unsubstituted
+    /// variables. Returns true if the declaration was fully handled and the
+    /// per-property cascade code should return early.
+    ///
+    /// `is_inherited` is whether the property is inherited. `inherit_or_reset`
+    /// resets an inherited property to its initial value (used for `initial`),
+    /// or explicitly inherits a non-inherited property (used for `inherit`).
+    /// `reinherit_with_zoom` re-computes the inherited value under the zoom
+    /// used for inheritance, for zoom-dependent properties.
+    #[inline]
+    pub(crate) fn cascade_simple_wide_keyword(
+        &self,
+        context: &mut computed::Context,
+        id: LonghandId,
+        is_inherited: bool,
+        inherit_or_reset: fn(&mut StyleBuilder),
+        reinherit_with_zoom: Option<unsafe fn(&mut computed::Context)>,
+    ) -> bool {
+        #[cfg(debug_assertions)]
+        {
+            let decl_id = self.id().as_longhand().unwrap();
+            match id.logical_group() {
+                Some(group) => debug_assert_eq!(decl_id.logical_group(), Some(group)),
+                None => debug_assert_eq!(decl_id, id),
+            }
+        }
+        #[cfg(not(debug_assertions))]
+        let _ = id;
+        context.for_non_inherited_property = !is_inherited;
+        let keyword = match *self {
+            PropertyDeclaration::CSSWideKeyword(ref declaration) => declaration.keyword,
+            #[cfg(debug_assertions)]
+            PropertyDeclaration::WithVariables(..) => {
+                self.debug_crash("Found variables not substituted");
+                return true;
+            },
+            _ => return false,
+        };
+        match keyword {
+            CSSWideKeyword::Initial => {
+                if is_inherited {
+                    inherit_or_reset(&mut context.builder);
+                } else {
+                    self.debug_crash("Unexpected initial or unset for non-inherited property");
+                }
+            },
+            CSSWideKeyword::Unset if !is_inherited => {
+                self.debug_crash("Unexpected initial or unset for non-inherited property");
+            },
+            CSSWideKeyword::Unset | CSSWideKeyword::Inherit => {
+                if !is_inherited {
+                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                }
+                if let Some(reinherit) = reinherit_with_zoom {
+                    if !context.builder.effective_zoom_for_inheritance.is_one() {
+                        let old_zoom = context.builder.effective_zoom;
+                        context.builder.effective_zoom =
+                            context.builder.effective_zoom_for_inheritance;
+                        unsafe { reinherit(context) };
+                        context.builder.effective_zoom = old_zoom;
+                        return true;
+                    }
+                }
+                if is_inherited {
+                    self.debug_crash(
+                        "Unexpected inherit or unset for non-zoom-dependent inherited property",
+                    );
+                } else {
+                    inherit_or_reset(&mut context.builder);
+                }
+            },
+            CSSWideKeyword::RevertRule | CSSWideKeyword::RevertLayer | CSSWideKeyword::Revert => {
+                self.debug_crash("Found revert* not dealt with");
+            },
+        }
+        true
     }
 
     /// Returns a CSS-wide keyword if the declaration's value is one.

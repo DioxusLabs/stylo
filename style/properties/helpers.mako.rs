@@ -8,19 +8,7 @@
 /// ${property.spec}
 pub mod ${property.ident} {
     #[allow(unused_imports)]
-    use crate::derives::*;
-    #[allow(unused_imports)]
-    use crate::values::{computed, generics, specified};
-    #[allow(unused_imports)]
-    use crate::values::computed::ToComputedValue;
-    #[allow(unused_imports)]
-    use servo_arc::Arc;
-    use cssparser::Parser;
-    #[allow(unused_imports)]
-    use crate::parser::{Parse, ParserContext};
-    use style_traits::ParseError;
-    #[allow(unused_imports)]
-    use crate::properties::{longhands, LonghandId, CSSWideKeyword, PropertyDeclaration};
+    use crate::properties::longhand_prelude::*;
 
     #[allow(unused_variables)]
     pub unsafe fn cascade_property(
@@ -30,75 +18,36 @@ pub mod ${property.ident} {
         % if property.logical:
         declaration.debug_crash("Should physicalize before entering here");
         % else:
-        context.for_non_inherited_property = ${"false" if property.style_struct.inherited else "true"};
-        % if property.logical_group:
-        debug_assert_eq!(
-            declaration.id().as_longhand().unwrap().logical_group(),
-            LonghandId::${property.camel_case}.logical_group(),
-        );
-        % else:
-        debug_assert_eq!(
-            declaration.id().as_longhand().unwrap(),
-            LonghandId::${property.camel_case},
-        );
+        % if property.is_zoom_dependent():
+        unsafe fn reinherit_with_zoom(context: &mut computed::Context) {
+            let computed = context.builder.inherited_style.clone_${property.ident}();
+            let specified = computed::ToComputedValue::from_computed_value(&computed);
+            % if property.boxed:
+            let specified = Box::new(specified);
+            % endif
+            let decl = PropertyDeclaration::${property.camel_case}(specified);
+            cascade_property(&decl, context);
+        }
         % endif
-        let specified_value = match *declaration {
-            PropertyDeclaration::CSSWideKeyword(ref wk) => {
-                match wk.keyword {
-                    % if not property.style_struct.inherited:
-                    CSSWideKeyword::Unset |
-                    % endif
-                    CSSWideKeyword::Initial => {
-                        % if not property.style_struct.inherited:
-                            declaration.debug_crash("Unexpected initial or unset for non-inherited property");
-                        % else:
-                            context.builder.reset_${property.ident}();
-                        % endif
-                    },
-                    % if property.style_struct.inherited:
-                    CSSWideKeyword::Unset |
-                    % endif
-                    CSSWideKeyword::Inherit => {
-                        % if not property.style_struct.inherited:
-                            context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                        % endif
-                        % if property.is_zoom_dependent():
-                            if !context.builder.effective_zoom_for_inheritance.is_one() {
-                                let old_zoom = context.builder.effective_zoom;
-                                context.builder.effective_zoom = context.builder.effective_zoom_for_inheritance;
-                                let computed = context.builder.inherited_style.clone_${property.ident}();
-                                let specified = computed::ToComputedValue::from_computed_value(&computed);
-                                % if property.boxed:
-                                let specified = Box::new(specified);
-                                % endif
-                                let decl = PropertyDeclaration::${property.camel_case}(specified);
-                                cascade_property(&decl, context);
-                                context.builder.effective_zoom = old_zoom;
-                                return;
-                            }
-                        % endif
-                        % if property.style_struct.inherited:
-                            declaration.debug_crash("Unexpected inherit or unset for non-zoom-dependent inherited property");
-                        % else:
-                            context.builder.inherit_${property.ident}();
-                        % endif
-                    }
-                    CSSWideKeyword::RevertRule |
-                    CSSWideKeyword::RevertLayer |
-                    CSSWideKeyword::Revert => {
-                        declaration.debug_crash("Found revert* not dealt with");
-                    },
-                }
-                return;
-            },
-            #[cfg(debug_assertions)]
-            PropertyDeclaration::WithVariables(..) => {
-                declaration.debug_crash("Found variables not substituted");
-                return;
-            },
-            _ => unsafe {
-                declaration.unchecked_value_as::<${property.specified_type()}>()
-            },
+        if declaration.cascade_simple_wide_keyword(
+            context,
+            LonghandId::${property.camel_case},
+            /* is_inherited = */ ${"true" if property.style_struct.inherited else "false"},
+            % if property.style_struct.inherited:
+            |builder| builder.reset_${property.ident}(),
+            % else:
+            |builder| builder.inherit_${property.ident}(),
+            % endif
+            % if property.is_zoom_dependent():
+            Some(reinherit_with_zoom),
+            % else:
+            None,
+            % endif
+        ) {
+            return;
+        }
+        let specified_value = unsafe {
+            declaration.unchecked_value_as::<${property.specified_type()}>()
         };
 
         % if property.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko":
@@ -150,14 +99,6 @@ pub mod ${property.ident} {
         use super::*;
     % endif
     % if property.predefined_type:
-    #[allow(unused_imports)]
-    use app_units::Au;
-    #[allow(unused_imports)]
-    use crate::values::specified::AllowQuirks;
-    #[allow(unused_imports)]
-    use crate::Zero;
-    #[allow(unused_imports)]
-    use smallvec::SmallVec;
     pub use crate::values::specified::${property.predefined_type} as SpecifiedValue;
     pub mod computed_value {
         pub use crate::values::computed::${property.predefined_type} as T;
@@ -242,6 +183,7 @@ pub mod ${property.ident} {
         SpecifiedValue::parse(input)
     }
 
+    % if engine == "gecko":
     #[cfg(feature = "gecko")]
     impl SpecifiedValue {
         /// Obtain a specified value from a Gecko keyword value
@@ -262,6 +204,7 @@ pub mod ${property.ident} {
         }
     }
     % endif
+    % endif
     % if property.vector:
     } // single_value
     % endif
@@ -279,10 +222,16 @@ pub mod ${property.ident} {
     // machinery and set_foo_from, and just compute the value like any other
     // longhand.
     % if property.vector:
-    <% allow_empty = not property.initial_value and not property.keyword %>
-    #[allow(unused_imports)]
-    use smallvec::SmallVec;
-
+    <%
+        allow_empty = not property.initial_value and not property.keyword
+        is_shared_list = allow_empty and property.style_struct.inherited
+        if not allow_empty:
+            list_type = "NonEmptyCommaList"
+        elif property.vector.separator == "Comma":
+            list_type = "EmptyCommaList"
+        else:
+            list_type = "EmptySpaceList"
+    %>
     /// The definition of the computed value for ${property.name}.
     pub mod computed_value {
         #[allow(unused_imports)]
@@ -297,8 +246,6 @@ pub mod ${property.ident} {
         use smallvec::SmallVec;
         % endif
         use crate::values::computed::ComputedVecIter;
-
-        <% is_shared_list = allow_empty and property.style_struct.inherited %>
 
         // FIXME(emilio): Add an OwnedNonEmptySlice type, and figure out
         // something for transition-name, which is the only remaining user
@@ -321,25 +268,9 @@ pub mod ${property.ident} {
                 SmallVec<[T; 1]>;
             % endif
 
-
         /// The generic type defining the animated and resolved values for
         /// this property.
-        ///
-        /// Making this type generic allows the compiler to figure out the
-        /// animated value for us, instead of having to implement it
-        /// manually for every type we care about.
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToResolvedValue, ToCss, ToTyped)]
-        % if property.vector.separator == "Comma":
-        #[css(comma)]
-        % endif
-        pub struct OwnedList<T>(
-            % if not allow_empty:
-            #[css(iterable)]
-            % else:
-            #[css(if_empty = "none", iterable)]
-            % endif
-            pub UnderlyingOwnedList<T>,
-        );
+        pub use crate::properties::longhand_lists::${list_type} as OwnedList;
 
         /// The computed value for this property.
         % if not is_shared_list:
@@ -379,15 +310,11 @@ pub mod ${property.ident} {
             }
 
             fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-                % if not is_shared_list:
-                use std::iter::FromIterator;
-                % endif
                 let iter =
                     resolved.0.into_iter().map(ToResolvedValue::from_resolved_value);
                 ComputedList(UnderlyingList::from_iter(iter))
             }
         }
-        % endif
 
         % if property.vector.simple_bindings:
         impl From<ComputedList> for UnderlyingList<single_value::T> {
@@ -405,14 +332,7 @@ pub mod ${property.ident} {
         % endif
 
         % if property.vector.animation_type:
-        use crate::values::animated::{Animate, ToAnimatedZero, Procedure, lists};
-        use crate::values::distance::{SquaredDistance, ComputeSquaredDistance};
-
-        // FIXME(emilio): For some reason rust thinks that this alias is
-        // unused, even though it's clearly used below?
-        #[allow(unused)]
         type AnimatedList = <OwnedList<single_value::T> as ToAnimatedValue>::AnimatedValue;
-        % if is_shared_list:
         impl ToAnimatedValue for ComputedList {
             type AnimatedValue = AnimatedList;
 
@@ -429,30 +349,6 @@ pub mod ${property.ident} {
             }
         }
         % endif
-
-        impl ToAnimatedZero for AnimatedList {
-            fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-        }
-
-        impl Animate for AnimatedList {
-            fn animate(
-                &self,
-                other: &Self,
-                procedure: Procedure,
-            ) -> Result<Self, ()> {
-                Ok(OwnedList(
-                    lists::${property.vector.animation_type}::animate(&self.0, &other.0, procedure)?
-                ))
-            }
-        }
-        impl ComputeSquaredDistance for AnimatedList {
-            fn compute_squared_distance(
-                &self,
-                other: &Self,
-            ) -> Result<SquaredDistance, ()> {
-                lists::${property.vector.animation_type}::squared_distance(&self.0, &other.0)
-            }
-        }
         % endif
 
         /// The computed value, effectively a list of single values.
@@ -550,13 +446,7 @@ pub mod ${property.ident} {
     /// ${shorthand.spec}
     pub mod ${shorthand.ident} {
         #[allow(unused_imports)]
-        use crate::derives::*;
-        use crate::parser::ParserContext;
-        use crate::properties::{PropertyDeclaration, SourcePropertyDeclaration, longhands};
-        use cssparser::Parser;
-        #[allow(unused_imports)]
-        use std::fmt::{self, Write};
-        use style_traits::{CssWriter, ToCss, ParseError};
+        use crate::properties::shorthand_prelude::*;
 
         % if shorthand.derive_value_info:
         #[derive(SpecifiedValueInfo)]

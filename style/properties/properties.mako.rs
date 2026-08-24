@@ -1702,29 +1702,51 @@ impl ComputedValues {
         context: Option<&mut resolved::Context>,
         dest: &mut CssStringWriter,
     ) -> fmt::Result {
+        type ToCssFn = fn(
+            &ComputedValues,
+            LonghandId,
+            Option<&mut resolved::Context>,
+            &mut CssWriter<CssStringWriter>,
+        ) -> fmt::Result;
+        fn logical_unreachable(
+            _: &ComputedValues,
+            _: LonghandId,
+            _: Option<&mut resolved::Context>,
+            _: &mut CssWriter<CssStringWriter>,
+        ) -> fmt::Result {
+            unsafe { debug_unreachable!() }
+        }
+        % for prop in data.longhands:
+        % if not prop.logical:
+        #[allow(non_snake_case)]
+        fn to_css_${prop.ident}(
+            style: &ComputedValues,
+            property_id: LonghandId,
+            context: Option<&mut resolved::Context>,
+            dest: &mut CssWriter<CssStringWriter>,
+        ) -> fmt::Result {
+            let value = style.clone_${prop.ident}();
+            if let Some(c) = context {
+                c.current_longhand = Some(property_id);
+                value.to_resolved_value(c).to_css(dest)
+            } else {
+                value.to_css(dest)
+            }
+        }
+        % endif
+        % endfor
+        static TO_CSS: [ToCssFn; property_counts::LONGHANDS] = [
+            % for prop in data.longhands:
+            % if prop.logical:
+            logical_unreachable,
+            % else:
+            to_css_${prop.ident},
+            % endif
+            % endfor
+        ];
         let mut dest = CssWriter::new(dest);
         let property_id = property_id.to_physical(self.writing_mode);
-        match property_id {
-            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
-            <% props = list(props) %>
-            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let value = match property_id {
-                    % for prop in props:
-                    % if not prop.logical:
-                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
-                    % endif
-                    % endfor
-                    _ => unsafe { debug_unreachable!() },
-                };
-                if let Some(c) = context {
-                    c.current_longhand = Some(property_id);
-                    value.to_resolved_value(c).to_css(&mut dest)
-                } else {
-                    value.to_css(&mut dest)
-                }
-            }
-            % endfor
-        }
+        TO_CSS[property_id as usize](self, property_id, context, &mut dest)
     }
 
     /// Returns the computed value of the given longhand as a
@@ -1733,23 +1755,29 @@ impl ComputedValues {
         &self,
         property_id: LonghandId,
     ) -> Option<TypedValueList> {
-        let property_id = property_id.to_physical(self.writing_mode);
-        match property_id {
-            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
-            <% props = list(props) %>
-            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let value = match property_id {
-                    % for prop in props:
-                    % if not prop.logical:
-                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
-                    % endif
-                    % endfor
-                    _ => unsafe { debug_unreachable!() },
-                };
-                value.to_typed_value_list()
-            }
-            % endfor
+        type ToTypedFn = fn(&ComputedValues) -> Option<TypedValueList>;
+        fn logical_unreachable(_: &ComputedValues) -> Option<TypedValueList> {
+            unsafe { debug_unreachable!() }
         }
+        % for prop in data.longhands:
+        % if not prop.logical:
+        #[allow(non_snake_case)]
+        fn to_typed_${prop.ident}(style: &ComputedValues) -> Option<TypedValueList> {
+            style.clone_${prop.ident}().to_typed_value_list()
+        }
+        % endif
+        % endfor
+        static TO_TYPED: [ToTypedFn; property_counts::LONGHANDS] = [
+            % for prop in data.longhands:
+            % if prop.logical:
+            logical_unreachable,
+            % else:
+            to_typed_${prop.ident},
+            % endif
+            % endfor
+        ];
+        let property_id = property_id.to_physical(self.writing_mode);
+        TO_TYPED[property_id as usize](self)
     }
 
     /// Returns the given longhand's resolved value as a property declaration.
@@ -1758,46 +1786,76 @@ impl ComputedValues {
         property_id: LonghandId,
         context: Option<&mut resolved::Context>,
     ) -> PropertyDeclaration {
-        let physical_property_id = property_id.to_physical(self.writing_mode);
-        match physical_property_id {
-            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
-            <% props = list(props) %>
-            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let mut computed_value = match physical_property_id {
-                    % for prop in props:
-                    % if not prop.logical:
-                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
-                    % endif
-                    % endfor
-                    _ => unsafe { debug_unreachable!() },
-                };
-                if let Some(c) = context {
-                    c.current_longhand = Some(physical_property_id);
-                    let resolved = computed_value.to_resolved_value(c);
-                    computed_value = ToResolvedValue::from_resolved_value(resolved);
-                }
-                let specified = ToComputedValue::from_computed_value(&computed_value);
-                % if props[0].boxed:
-                let specified = Box::new(specified);
-                % endif
-                % if len(props) == 1:
-                PropertyDeclaration::${props[0].camel_case}(specified)
-                % else:
-                unsafe {
-                    let mut out = mem::MaybeUninit::uninit();
-                    ptr::write(
-                        out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${specified_type}>,
-                        PropertyDeclarationVariantRepr {
-                            tag: property_id as u16,
-                            value: specified,
-                        },
-                    );
-                    out.assume_init()
-                }
-                % endif
-            }
-            % endfor
+        <%
+            group_info = {}
+            for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
+                props = list(props)
+                for p in props:
+                    group_info[p.ident] = (specified_type, props)
+        %>
+        type ToDeclFn = fn(
+            &ComputedValues,
+            LonghandId,
+            LonghandId,
+            Option<&mut resolved::Context>,
+        ) -> PropertyDeclaration;
+        fn logical_unreachable(
+            _: &ComputedValues,
+            _: LonghandId,
+            _: LonghandId,
+            _: Option<&mut resolved::Context>,
+        ) -> PropertyDeclaration {
+            unsafe { debug_unreachable!() }
         }
+        % for prop in data.longhands:
+        % if not prop.logical:
+        <% specified_type, props = group_info[prop.ident] %>
+        #[allow(non_snake_case, unused_variables)]
+        fn to_decl_${prop.ident}(
+            style: &ComputedValues,
+            property_id: LonghandId,
+            physical_property_id: LonghandId,
+            context: Option<&mut resolved::Context>,
+        ) -> PropertyDeclaration {
+            let mut computed_value = style.clone_${prop.ident}();
+            if let Some(c) = context {
+                c.current_longhand = Some(physical_property_id);
+                let resolved = computed_value.to_resolved_value(c);
+                computed_value = ToResolvedValue::from_resolved_value(resolved);
+            }
+            let specified = ToComputedValue::from_computed_value(&computed_value);
+            % if prop.boxed:
+            let specified = Box::new(specified);
+            % endif
+            % if len(props) == 1:
+            PropertyDeclaration::${prop.camel_case}(specified)
+            % else:
+            unsafe {
+                let mut out = mem::MaybeUninit::uninit();
+                ptr::write(
+                    out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${specified_type}>,
+                    PropertyDeclarationVariantRepr {
+                        tag: property_id as u16,
+                        value: specified,
+                    },
+                );
+                out.assume_init()
+            }
+            % endif
+        }
+        % endif
+        % endfor
+        static TO_DECL: [ToDeclFn; property_counts::LONGHANDS] = [
+            % for prop in data.longhands:
+            % if prop.logical:
+            logical_unreachable,
+            % else:
+            to_decl_${prop.ident},
+            % endif
+            % endfor
+        ];
+        let physical_property_id = property_id.to_physical(self.writing_mode);
+        TO_DECL[physical_property_id as usize](self, property_id, physical_property_id, context)
     }
 
     /// Resolves the currentColor keyword.

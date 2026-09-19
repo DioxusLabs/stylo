@@ -556,7 +556,7 @@ spec = "https://compat.spec.whatwg.org/#the-webkit-text-stroke"
 derive_serialize = true
 
 [-webkit-line-clamp]
-engine = "gecko"
+servo_pref = "layout.css.line-clamp.enabled"
 flags = "IS_LEGACY_SHORTHAND ALLOWS_DISABLED_SUBPROPERTIES"
 sub_properties = ["line-clamp"]
 spec = "https://drafts.csswg.org/css-overflow-4/#webkit-line-clamp"

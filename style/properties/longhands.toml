@@ -2552,7 +2552,7 @@ servo_restyle_damage = "rebuild_box"
 
 [ruby-position]
 type = "RubyPosition"
-initial = "computed::RubyPosition::AlternateOver"
+initial = "computed::RubyPosition::Over"
 struct = "inherited_text"
 servo_pref = "layout.css.ruby.enabled"
 spec = "https://drafts.csswg.org/css-ruby/#ruby-position-property"

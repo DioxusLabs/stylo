@@ -2567,6 +2567,22 @@ spec = "https://drafts.csswg.org/css-text-3/#tab-size-property"
 extra_gecko_aliases = ["-moz-tab-size"]
 affects = "layout"
 
+[hanging-punctuation]
+type = "HangingPunctuation"
+initial = "computed::HangingPunctuation::NONE"
+struct = "inherited_text"
+animation_type = "discrete"
+spec = "https://drafts.csswg.org/css-text-3/#hanging-punctuation-property"
+affects = "layout"
+
+[text-spacing-trim]
+struct = "inherited_text"
+animation_type = "discrete"
+spec = "https://drafts.csswg.org/css-text-4/#text-spacing-trim-property"
+affects = "layout"
+type = "TextSpacingTrim"
+initial = "computed::TextSpacingTrim::Normal"
+
 [text-autospace]
 type = "TextAutospace"
 initial = "computed::text::TextAutospace::NO_AUTOSPACE"
@@ -3983,7 +3999,7 @@ initial = "computed::RubyAlign::SpaceAround"
 [text-combine-upright]
 struct = "inherited_text"
 servo_pref = "layout.css.text-combine-upright.enabled"
-spec = "https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright"
+spec = "https://drafts.csswg.org/css-writing-modes-4/#text-combine-upright"
 animation_type = "none"
 affects = "layout"
 type = "TextCombineUpright"

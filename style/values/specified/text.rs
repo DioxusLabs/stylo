@@ -1261,6 +1261,132 @@ impl SpecifiedValueInfo for RubyPosition {
     }
 }
 
+/// Specified and computed value of the `hanging-punctuation` property:
+/// `none | [ first || [ force-end | allow-end ] || last ]`.
+///
+/// https://drafts.csswg.org/css-text-3/#hanging-punctuation-property
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[css(bitflags(
+    single = "none",
+    mixed = "first,force-end,allow-end,last",
+    validate_mixed = "Self::validate_mixed_flags",
+))]
+#[repr(C)]
+pub struct HangingPunctuation(u8);
+bitflags! {
+    impl HangingPunctuation: u8 {
+        /// Nothing hangs.
+        const NONE = 0;
+        /// An opening bracket or quote at the start of the first formatted
+        /// line hangs.
+        const FIRST = 1 << 0;
+        /// A stop or comma at the end of a line always hangs.
+        const FORCE_END = 1 << 1;
+        /// A stop or comma at the end of a line hangs where it would not
+        /// otherwise fit.
+        const ALLOW_END = 1 << 2;
+        /// A closing bracket or quote at the end of the last formatted line
+        /// hangs.
+        const LAST = 1 << 3;
+    }
+}
+
+impl HangingPunctuation {
+    /// `force-end` and `allow-end` exclude each other.
+    fn validate_mixed_flags(&self) -> bool {
+        !self.contains(Self::FORCE_END | Self::ALLOW_END)
+    }
+}
+
+/// Specified and computed value of the `text-combine-upright` property:
+/// `none | all | digits <integer [2,4]>?`.
+///
+/// https://drafts.csswg.org/css-writing-modes-4/#text-combine-upright
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(C, u8)]
+#[typed(todo_derive_fields)]
+pub enum TextCombineUpright {
+    /// No special processing.
+    None,
+    /// The element's text combined into one upright em.
+    All,
+    /// Each run of at most this many ASCII digits combined.
+    Digits(u8),
+}
+
+impl Parse for TextCombineUpright {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ParseError> {
+        let ident = input.expect_ident()?.clone();
+        Ok(cssparser::match_ignore_ascii_case! { &ident,
+            "none" => Self::None,
+            "all" => Self::All,
+            "digits" => {
+                // The count is 2 where it is left out, and 2 to 4 where it
+                // is given.
+                let count = match input.try_parse(|i| Integer::parse(context, i)) {
+                    Ok(count) => count
+                        .resolve()
+                        .filter(|count| (2..=4).contains(count))
+                        .ok_or_else(|| ParseError::custom(StyleParseErrorKind::UnspecifiedError))?,
+                    Err(_) => 2,
+                };
+                Self::Digits(count as u8)
+            },
+            _ => return Err(ParseError::custom(StyleParseErrorKind::UnspecifiedError)),
+        })
+    }
+}
+
+impl ToCss for TextCombineUpright {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            Self::None => dest.write_str("none"),
+            Self::All => dest.write_str("all"),
+            Self::Digits(2) => dest.write_str("digits"),
+            Self::Digits(count) => {
+                dest.write_str("digits ")?;
+                count.to_css(dest)
+            },
+        }
+    }
+}
+
+impl SpecifiedValueInfo for TextCombineUpright {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        f(&["none", "all", "digits"])
+    }
+}
+
 /// Specified value for the text-autospace property
 /// which takes the grammar:
 ///     normal | <autospace> | auto
@@ -1640,7 +1766,7 @@ pub enum RubyAlign {
     SpaceBetween,
 }
 
-/// https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright
+/// https://drafts.csswg.org/css-text-4/#text-spacing-trim-property
 #[allow(missing_docs)]
 #[derive(
     Clone,
@@ -1662,9 +1788,11 @@ pub enum RubyAlign {
     ToTyped,
 )]
 #[repr(u8)]
-pub enum TextCombineUpright {
-    None,
-    All,
+pub enum TextSpacingTrim {
+    Normal,
+    SpaceAll,
+    SpaceFirst,
+    TrimStart,
 }
 
 /// https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty

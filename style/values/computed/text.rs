@@ -25,11 +25,12 @@ use style_traits::{CssString, CssWriter, ToCss};
 use thin_vec::ThinVec;
 
 pub use crate::values::specified::text::{
-    HyphenateCharacter, Hyphens, LineBreak, MozControlCharacterVisibility, OverflowWrap, RubyAlign,
-    RubyPosition, TextAlignLast, TextAutospace, TextBoxEdge, TextBoxTrim, TextCombineUpright,
-    TextDecorationLine, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
-    TextJustify, TextOverflow, TextRendering, TextSecurity, TextSizeAdjust, TextTransform,
-    TextUnderlinePosition, TextWrapMode, TextWrapStyle, UnicodeBidi, WhiteSpaceCollapse, WordBreak,
+    HangingPunctuation, HyphenateCharacter, Hyphens, LineBreak, MozControlCharacterVisibility,
+    OverflowWrap, RubyAlign, RubyPosition, TextAlignLast, TextAutospace, TextBoxEdge, TextBoxTrim,
+    TextCombineUpright, TextDecorationLine, TextDecorationSkipInk, TextDecorationStyle,
+    TextEmphasisPosition, TextJustify, TextOverflow, TextRendering, TextSecurity, TextSizeAdjust,
+    TextSpacingTrim, TextTransform, TextUnderlinePosition, TextWrapMode, TextWrapStyle,
+    UnicodeBidi, WhiteSpaceCollapse, WordBreak,
 };
 
 /// A computed value for the `initial-letter` property.

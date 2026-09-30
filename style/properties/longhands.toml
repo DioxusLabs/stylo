@@ -548,10 +548,10 @@ servo_restyle_damage = "rebuild_stacking_context"
 type = "FillRule"
 initial = "Default::default()"
 struct = "inherited_svg"
-engine = "gecko"
 animation_type = "discrete"
 spec = "https://svgwg.org/svg2-draft/masking.html#ClipRuleProperty"
 affects = "paint"
+servo_restyle_damage = "repaint"
 
 [color]
 type = "ColorPropertyValue"

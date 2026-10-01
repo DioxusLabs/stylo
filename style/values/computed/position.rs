@@ -21,7 +21,7 @@ use crate::values::generics::position::{
 };
 pub use crate::values::specified::position::{
     AnchorName, DashedIdentAndOrTryTactic, FlexWrap, GridAutoFlow, GridLanesDirection, GridTemplateAreas,
-    MasonryAutoFlow, PositionAnchor, PositionArea, PositionAreaAxis, PositionAreaKeyword,
+    PositionAnchor, PositionArea, PositionAreaAxis, PositionAreaKeyword,
     PositionAreaType, PositionTryFallbacks, PositionTryFallbacksTryTactic,
     PositionTryFallbacksTryTacticKeyword, PositionTryOrder, PositionVisibility, ScopedName,
 };

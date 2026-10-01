@@ -272,11 +272,6 @@ fn allow_grid_template_subgrids() -> bool {
     crate::pref!("layout.css.grid-template-subgrid-value.enabled", gecko = true)
 }
 
-#[inline]
-fn allow_grid_template_masonry() -> bool {
-    crate::pref!("layout.css.grid-template-masonry-value.enabled")
-}
-
 impl Parse for GridTemplateComponent<LengthPercentage, Integer> {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ParseError> {
         if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
@@ -297,13 +292,6 @@ impl GridTemplateComponent<LengthPercentage, Integer> {
             if let Ok(t) = input.try_parse(|i| LineNameList::parse(context, i)) {
                 return Ok(GridTemplateComponent::Subgrid(Box::new(t)));
             }
-        }
-        if allow_grid_template_masonry()
-            && input
-                .try_parse(|i| i.expect_ident_matching("masonry"))
-                .is_ok()
-        {
-            return Ok(GridTemplateComponent::Masonry);
         }
         let track_list = TrackList::parse(context, input)?;
         Ok(GridTemplateComponent::TrackList(Box::new(track_list)))

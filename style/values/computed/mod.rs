@@ -104,7 +104,7 @@ pub use self::position::PositionTryOrder;
 pub use self::position::PositionVisibility;
 pub use self::position::ScopedName;
 pub use self::position::{
-    FlexWrap, GridAutoFlow, GridLanesDirection, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto, ZIndex,
+    FlexWrap, GridAutoFlow, GridLanesDirection, GridTemplateAreas, Position, PositionOrAuto, ZIndex,
 };
 pub use self::position::{PositionArea, PositionAreaKeyword};
 pub use self::ratio::Ratio;

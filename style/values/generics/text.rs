@@ -84,6 +84,34 @@ impl<Integer: ToCss + PartialEq> ToCss for GenericHyphenateLimitChars<Integer> {
     }
 }
 
+/// The sink of an `initial-letter` value.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(C, u8)]
+#[typed(todo_derive_fields)]
+pub enum GenericInitialLetterSink<Integer> {
+    /// Left out: the size, floored, as `drop` is.
+    Omitted,
+    /// `drop`: the size, floored.
+    Drop,
+    /// `raise`: 1.
+    Raise,
+    /// An explicit sink, >=1.
+    Integer(Integer),
+}
+
+pub use self::GenericInitialLetterSink as InitialLetterSink;
+
 /// A generic value for the `initial-letter` property.
 #[derive(
     Clone,
@@ -101,23 +129,23 @@ impl<Integer: ToCss + PartialEq> ToCss for GenericHyphenateLimitChars<Integer> {
 pub struct GenericInitialLetter<Number, Integer> {
     /// The size, >=1, or 0 if `normal`.
     pub size: Number,
-    /// The sink, >=1, if specified, 0 otherwise.
-    pub sink: Integer,
+    /// The sink.
+    pub sink: GenericInitialLetterSink<Integer>,
 }
 
 pub use self::GenericInitialLetter as InitialLetter;
-impl<N: Zero, I: Zero> InitialLetter<N, I> {
+impl<N: Zero, I> InitialLetter<N, I> {
     /// Returns `normal`.
     #[inline]
     pub fn normal() -> Self {
         InitialLetter {
             size: N::zero(),
-            sink: I::zero(),
+            sink: InitialLetterSink::Omitted,
         }
     }
 }
 
-impl<N: ToCss + Zero, I: ToCss + Zero> ToCss for InitialLetter<N, I> {
+impl<N: ToCss + Zero, I: ToCss> ToCss for InitialLetter<N, I> {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -126,11 +154,15 @@ impl<N: ToCss + Zero, I: ToCss + Zero> ToCss for InitialLetter<N, I> {
             return dest.write_str("normal");
         }
         self.size.to_css(dest)?;
-        if !self.sink.is_zero() {
-            dest.write_char(' ')?;
-            self.sink.to_css(dest)?;
+        match self.sink {
+            InitialLetterSink::Omitted => Ok(()),
+            InitialLetterSink::Drop => dest.write_str(" drop"),
+            InitialLetterSink::Raise => dest.write_str(" raise"),
+            InitialLetterSink::Integer(ref sink) => {
+                dest.write_char(' ')?;
+                sink.to_css(dest)
+            },
         }
-        Ok(())
     }
 }
 

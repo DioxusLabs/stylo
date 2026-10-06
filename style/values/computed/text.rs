@@ -26,11 +26,11 @@ use thin_vec::ThinVec;
 
 pub use crate::values::specified::text::{
     HangingPunctuation, HyphenateCharacter, Hyphens, LineBreak, MozControlCharacterVisibility,
-    OverflowWrap, RubyAlign, RubyPosition, TextAlignLast, TextAutospace, TextBoxEdge, TextBoxTrim,
-    TextCombineUpright, TextDecorationLine, TextDecorationSkipInk, TextDecorationStyle,
-    TextEmphasisPosition, TextJustify, TextOverflow, TextRendering, TextSecurity, TextSizeAdjust,
-    TextSpacingTrim, TextTransform, TextUnderlinePosition, TextWrapMode, TextWrapStyle,
-    UnicodeBidi, WhiteSpaceCollapse, WordBreak,
+    OverflowWrap, RubyAlign, RubyOverhang, RubyPosition, TextAlignLast, TextAutospace, TextBoxEdge,
+    TextBoxTrim, TextCombineUpright, TextDecorationLine, TextDecorationSkipInk,
+    TextDecorationStyle, TextEmphasisPosition, TextJustify, TextOverflow, TextRendering,
+    TextSecurity, TextSizeAdjust, TextSpacingTrim, TextTransform, TextUnderlinePosition,
+    TextWrapMode, TextWrapStyle, UnicodeBidi, WhiteSpaceCollapse, WordBreak,
 };
 
 /// A computed value for the `initial-letter` property.

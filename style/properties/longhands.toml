@@ -3996,6 +3996,14 @@ affects = "layout"
 type = "RubyAlign"
 initial = "computed::RubyAlign::SpaceAround"
 
+[ruby-overhang]
+struct = "inherited_text"
+spec = "https://drafts.csswg.org/css-ruby/#ruby-overhang"
+animation_type = "discrete"
+affects = "layout"
+type = "RubyOverhang"
+initial = "computed::RubyOverhang::Auto"
+
 [text-combine-upright]
 struct = "inherited_text"
 servo_pref = "layout.css.text-combine-upright.enabled"

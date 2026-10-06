@@ -14,7 +14,7 @@ use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::NumberOrAuto;
 use crate::values::generics::text::{
     GenericHyphenateLimitChars, GenericInitialLetter, GenericTextDecorationInset,
-    GenericTextDecorationLength, GenericTextIndent,
+    GenericTextDecorationLength, GenericTextIndent, InitialLetterSink,
 };
 use crate::values::specified::length::{Length, LengthPercentage};
 use crate::values::specified::{AllowQuirks, Integer, Number};
@@ -152,10 +152,26 @@ impl Parse for InitialLetter {
         {
             return Ok(Self::normal());
         }
+        // `<number [1,∞]> <integer [1,∞]>? | <number [1,∞]> && [ drop | raise ]`
+        fn parse_keyword(input: &mut Parser) -> Result<InitialLetterSink<Integer>, ParseError> {
+            Ok(try_match_ident_ignore_ascii_case! { input,
+                "drop" => InitialLetterSink::Drop,
+                "raise" => InitialLetterSink::Raise,
+            })
+        }
+        if let Ok(sink) = input.try_parse(parse_keyword) {
+            let size = Number::parse_at_least_one(context, input)?;
+            return Ok(Self { size, sink });
+        }
         let size = Number::parse_at_least_one(context, input)?;
         let sink = input
-            .try_parse(|i| Integer::parse_positive(context, i))
-            .unwrap_or_else(|_| crate::Zero::zero());
+            .try_parse(parse_keyword)
+            .or_else(|_| {
+                input.try_parse(|i| {
+                    Integer::parse_positive(context, i).map(InitialLetterSink::Integer)
+                })
+            })
+            .unwrap_or(InitialLetterSink::Omitted);
         Ok(Self { size, sink })
     }
 }
@@ -1764,6 +1780,34 @@ pub enum RubyAlign {
     Start,
     Center,
     SpaceBetween,
+}
+
+/// https://drafts.csswg.org/css-ruby/#ruby-overhang
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(u8)]
+pub enum RubyOverhang {
+    Auto,
+    #[parse(aliases = "none")]
+    Spaces,
 }
 
 /// https://drafts.csswg.org/css-text-4/#text-spacing-trim-property

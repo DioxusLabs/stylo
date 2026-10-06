@@ -124,7 +124,7 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth, VectorEffect};
 pub use self::table::{BorderCollapse, EmptyCells, TableLayout};
 pub use self::text::{HangingPunctuation, TextAutospace, TextUnderlinePosition};
 pub use self::text::{
-    HyphenateCharacter, HyphenateLimitChars, Hyphens, RubyAlign, TextCombineUpright,
+    HyphenateCharacter, HyphenateLimitChars, Hyphens, RubyAlign, RubyOverhang, TextCombineUpright,
     TextDecorationStyle, TextRendering, TextSecurity, TextSizeAdjust, TextSpacingTrim,
     TextWrapMode, TextWrapStyle, UnicodeBidi, WhiteSpaceCollapse,
 };

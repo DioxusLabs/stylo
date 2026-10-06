@@ -592,6 +592,7 @@ class Longhand(Property):
                 "TextRendering",
                 "TextCombineUpright",
                 "RubyAlign",
+                "RubyOverhang",
                 "TextSizeAdjust",
                 "Hyphens",
                 "EmptyCells",

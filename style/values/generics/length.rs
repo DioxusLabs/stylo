@@ -368,6 +368,39 @@ pub enum GenericLengthPercentageOrNormal<LengthPercent> {
 
 pub use self::GenericLengthPercentageOrNormal as LengthPercentageOrNormal;
 
+/// A generic `normal | <length-percentage> | infinite` value, as used by `flow-tolerance`.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(C, u8)]
+#[allow(missing_docs)]
+pub enum GenericFlowTolerance<LengthPercent> {
+    Normal,
+    LengthPercentage(LengthPercent),
+    Infinite,
+}
+
+pub use self::GenericFlowTolerance as FlowTolerance;
+
+impl<LengthPercent> FlowTolerance<LengthPercent> {
+    /// Returns the normal value.
+    #[inline]
+    pub fn normal() -> Self {
+        FlowTolerance::Normal
+    }
+}
+
 impl<LengthPercent> LengthPercentageOrNormal<LengthPercent> {
     /// Returns the normal value.
     #[inline]

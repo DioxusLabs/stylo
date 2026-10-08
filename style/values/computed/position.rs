@@ -20,7 +20,7 @@ use crate::values::generics::position::{
     PositionOrAuto as GenericPositionOrAuto, ZIndex as GenericZIndex,
 };
 pub use crate::values::specified::position::{
-    AnchorName, DashedIdentAndOrTryTactic, FlexWrap, GridAutoFlow, GridTemplateAreas,
+    AnchorName, DashedIdentAndOrTryTactic, FlexWrap, GridAutoFlow, GridLanesDirection, GridTemplateAreas,
     MasonryAutoFlow, PositionAnchor, PositionArea, PositionAreaAxis, PositionAreaKeyword,
     PositionAreaType, PositionTryFallbacks, PositionTryFallbacksTryTactic,
     PositionTryFallbacksTryTacticKeyword, PositionTryOrder, PositionVisibility, ScopedName,

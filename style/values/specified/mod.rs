@@ -89,7 +89,7 @@ pub use self::page::{PageName, PageOrientation, PageSize, PageSizeOrientation, P
 pub use self::param::LinkParameters;
 pub use self::percentage::{NoCalcPercentage, NonNegativePercentage, Percentage};
 pub use self::position::{
-    AnchorFunction, AnchorName, AnchorNameIdent, AspectRatio, FlexWrap, GridAutoFlow,
+    AnchorFunction, AnchorName, AnchorNameIdent, AspectRatio, FlexWrap, GridAutoFlow, GridLanesDirection,
     GridTemplateAreas, Inset, MasonryAutoFlow, MasonryItemOrder, MasonryPlacement, Position,
     PositionAnchor, PositionAnchorKeyword, PositionArea, PositionAreaKeyword, PositionComponent,
     PositionOrAuto, PositionTryFallbacks, PositionTryOrder, PositionVisibility, ScopedName, ZIndex,

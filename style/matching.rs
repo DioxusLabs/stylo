@@ -639,6 +639,9 @@ trait PrivateMatchMethods: TElement {
         use crate::context::{SequentialTask, UpdateAnimationsTasks};
 
         let old_values = &old_styles.primary;
+        if context.shared.traversal_flags.for_animation_only() && old_values.is_some() {
+            return;
+        }
         let mut tasks = UpdateAnimationsTasks::empty();
 
         if self.needs_animations_update(

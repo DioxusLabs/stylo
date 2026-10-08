@@ -7,6 +7,7 @@
 //! These get compiled out on a Gecko build.
 
 pub mod animation;
+pub mod animation_timing;
 #[allow(missing_docs)] // TODO.
 pub mod attr;
 mod encoding_support;

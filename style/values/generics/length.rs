@@ -370,13 +370,17 @@ pub use self::GenericLengthPercentageOrNormal as LengthPercentageOrNormal;
 
 /// A generic `normal | <length-percentage> | infinite` value, as used by `fit-tolerance`.
 #[derive(
+    Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
     Parse,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,

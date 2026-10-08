@@ -15,8 +15,9 @@ use crate::context::TreeCountingCaches;
 use crate::dom::{AttributeTracker, TElement};
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::properties::{
-    ComputedValues, KeyframeCustomPropertiesBuilder, OwnedPropertyDeclarationId,
-    PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationIdSet, StyleBuilder,
+    CSSWideKeyword, ComputedValues, KeyframeCustomPropertiesBuilder, LonghandIdSet,
+    OwnedPropertyDeclarationId, PropertyDeclaration, PropertyDeclarationBlock,
+    PropertyDeclarationId, PropertyDeclarationIdSet, StyleBuilder,
 };
 use crate::selector_parser::PseudoElement;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
@@ -271,6 +272,20 @@ pub fn compute_keyframe_values<E: TElement>(
         builder.build(&mut context, &mut AttributeTracker::new(&element));
     }
 
+    // The revert keywords roll back to a value that is only known in the cascade. That is
+    // the underlying value unless a lower-priority animation also sets the property, so
+    // these declarations are left out and the keyframe is treated as not having the property.
+    let mut reverted = LonghandIdSet::default();
+    for declaration in declarations.normal_declaration_iter() {
+        let is_revert = matches!(
+            declaration.get_css_wide_keyword(),
+            Some(CSSWideKeyword::Revert | CSSWideKeyword::RevertLayer | CSSWideKeyword::RevertRule)
+        );
+        if let (true, PropertyDeclarationId::Longhand(id)) = (is_revert, declaration.id()) {
+            reverted.insert(id.to_physical(style.writing_mode));
+        }
+    }
+
     let restriction = pseudo.and_then(|pseudo| pseudo.property_restriction());
     let mut seen = PropertyDeclarationIdSet::default();
     let mut values = Vec::new();
@@ -279,6 +294,11 @@ pub fn compute_keyframe_values<E: TElement>(
         let property = value.id();
         if restriction.is_some_and(|restriction| !property.flags().contains(restriction)) {
             continue;
+        }
+        if let PropertyDeclarationId::Longhand(longhand) = property {
+            if reverted.contains(longhand) {
+                continue;
+            }
         }
         // A later declaration wins, for example a physical longhand after the logical one that
         // maps to it.

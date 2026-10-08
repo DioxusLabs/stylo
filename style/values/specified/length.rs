@@ -19,8 +19,8 @@ use crate::values::computed::{self, CSSPixelLength, Context, FontSize};
 use crate::values::generics::NonNegative;
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
-    GenericAnchorSizeFunction, GenericFlowTolerance, GenericLengthOrNumber, GenericLengthPercentageOrNormal,
-    GenericMargin, GenericMaxSize, GenericSize,
+    GenericAnchorSizeFunction, GenericFlowTolerance, GenericLengthOrNumber,
+    GenericLengthPercentageOrNormal, GenericMargin, GenericMaxSize, GenericSize,
 };
 use crate::values::specified::NonNegativeNumber;
 use crate::values::specified::calc::{

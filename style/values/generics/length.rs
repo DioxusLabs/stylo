@@ -368,7 +368,7 @@ pub enum GenericLengthPercentageOrNormal<LengthPercent> {
 
 pub use self::GenericLengthPercentageOrNormal as LengthPercentageOrNormal;
 
-/// A generic `normal | <length-percentage> | infinite` value, as used by `flow-tolerance`.
+/// A generic `normal | <length-percentage> | infinite` value, as used by `fit-tolerance`.
 #[derive(
     Clone,
     Copy,
@@ -385,19 +385,19 @@ pub use self::GenericLengthPercentageOrNormal as LengthPercentageOrNormal;
 )]
 #[repr(C, u8)]
 #[allow(missing_docs)]
-pub enum GenericFlowTolerance<LengthPercent> {
+pub enum GenericFitTolerance<LengthPercent> {
     Normal,
     LengthPercentage(LengthPercent),
     Infinite,
 }
 
-pub use self::GenericFlowTolerance as FlowTolerance;
+pub use self::GenericFitTolerance as FitTolerance;
 
-impl<LengthPercent> FlowTolerance<LengthPercent> {
+impl<LengthPercent> FitTolerance<LengthPercent> {
     /// Returns the normal value.
     #[inline]
     pub fn normal() -> Self {
-        FlowTolerance::Normal
+        FitTolerance::Normal
     }
 }
 

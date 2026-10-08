@@ -22,9 +22,13 @@ use crate::properties::ComputedValues;
 use crate::properties::PropertyDeclarationBlock;
 #[cfg(feature = "servo")]
 use crate::rule_tree::RuleCascadeFlags;
+#[cfg(feature = "servo")]
+use crate::rule_tree::RuleTree;
 use crate::rule_tree::{CascadeLevel, CascadeOrigin, StrongRuleNode};
 use crate::selector_parser::{PseudoElement, RestyleDamage};
 use crate::shared_lock::Locked;
+#[cfg(feature = "servo")]
+use crate::style_resolver::PrimaryStyle;
 use crate::style_resolver::StyleResolverForElement;
 use crate::style_resolver::{PseudoElementResolution, ResolvedElementStyles};
 use crate::stylesheets::layer_rule::LayerOrder;
@@ -344,7 +348,6 @@ trait PrivateMatchMethods: TElement {
         true
     }
 
-    #[cfg(feature = "gecko")]
     fn maybe_resolve_starting_style(
         &self,
         context: &mut StyleContext<Self>,
@@ -550,6 +553,15 @@ trait PrivateMatchMethods: TElement {
         use crate::animation::AnimationSetKey;
         use crate::dom::TDocument;
 
+        if self.has_embedder_animations() {
+            return self.process_embedder_animations(
+                context,
+                old_styles,
+                new_resolved_styles,
+                _important_rules_changed,
+            );
+        }
+
         let style_changed = self.process_animations_for_style(
             context,
             &mut old_styles.primary,
@@ -611,6 +623,249 @@ trait PrivateMatchMethods: TElement {
             new_resolved_styles,
             PseudoElement::After,
         );
+    }
+
+    /// The equivalent of Gecko's `process_animations`, for embedders that own their animations.
+    /// The differences are that pseudo-elements are handled here, because they are not elements,
+    /// and that there are no named timelines.
+    #[cfg(feature = "servo")]
+    fn process_embedder_animations(
+        &self,
+        context: &mut StyleContext<Self>,
+        old_styles: &ElementStyles,
+        new_styles: &mut ResolvedElementStyles,
+        important_rules_changed: bool,
+    ) {
+        use crate::context::{SequentialTask, UpdateAnimationsTasks};
+
+        let old_values = &old_styles.primary;
+        let mut tasks = UpdateAnimationsTasks::empty();
+
+        if self.needs_animations_update(
+            context,
+            old_values.as_deref(),
+            new_styles.primary_style(),
+            /* pseudo_element = */ None,
+        ) {
+            tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
+        }
+
+        let starting_values =
+            self.maybe_resolve_starting_style(context, old_values.as_ref(), new_styles);
+        let before_change_style = self.process_embedder_transitions(
+            context,
+            starting_values.as_ref().or(old_values.as_ref()),
+            new_styles.primary_style_mut(),
+            /* pseudo_element = */ None,
+            |context, style| self.after_change_style(context, style),
+        );
+        if before_change_style.is_some() {
+            tasks.insert(UpdateAnimationsTasks::CSS_TRANSITIONS);
+        }
+
+        if self.has_animations(context.shared) {
+            tasks.insert(UpdateAnimationsTasks::EFFECT_PROPERTIES);
+            if important_rules_changed {
+                tasks.insert(UpdateAnimationsTasks::CASCADE_RESULTS);
+            }
+            if new_styles
+                .primary_style()
+                .is_display_property_changed_from_none(old_values.as_deref())
+            {
+                tasks.insert(UpdateAnimationsTasks::DISPLAY_CHANGED_FROM_NONE);
+            }
+        }
+
+        if !tasks.is_empty() {
+            context
+                .thread_local
+                .tasks
+                .push(SequentialTask::update_animations(
+                    *self,
+                    None,
+                    before_change_style,
+                    tasks,
+                ));
+        }
+
+        for pseudo_element in [PseudoElement::Before, PseudoElement::After] {
+            self.process_embedder_animations_for_pseudo(
+                context,
+                old_styles,
+                new_styles,
+                pseudo_element,
+            );
+        }
+    }
+
+    /// Returns the before-change style if the transitions of the element or pseudo-element need
+    /// to be updated, in which case `new_values` is replaced by the after-change style.
+    #[cfg(feature = "servo")]
+    fn process_embedder_transitions(
+        &self,
+        context: &mut StyleContext<Self>,
+        before_change_style: Option<&Arc<ComputedValues>>,
+        new_values: &mut Arc<ComputedValues>,
+        pseudo_element: Option<&PseudoElement>,
+        after_change_style: impl FnOnce(
+            &mut StyleContext<Self>,
+            &Arc<ComputedValues>,
+        ) -> Option<Arc<ComputedValues>>,
+    ) -> Option<Arc<ComputedValues>> {
+        if !self.might_need_transitions_update(
+            context,
+            before_change_style.map(|s| &**s),
+            new_values,
+            pseudo_element.cloned(),
+        ) {
+            return None;
+        }
+
+        let after_change_style =
+            if self.has_css_transitions(context.shared, pseudo_element.cloned()) {
+                after_change_style(context, new_values)
+            } else {
+                None
+            };
+
+        if !self.needs_transitions_update(
+            pseudo_element,
+            before_change_style.unwrap(),
+            after_change_style.as_ref().unwrap_or(new_values),
+        ) {
+            return None;
+        }
+
+        if let Some(values_without_transitions) = after_change_style {
+            *new_values = values_without_transitions;
+        }
+
+        before_change_style.cloned()
+    }
+
+    #[cfg(feature = "servo")]
+    fn process_embedder_animations_for_pseudo(
+        &self,
+        context: &mut StyleContext<Self>,
+        old_styles: &ElementStyles,
+        new_styles: &mut ResolvedElementStyles,
+        pseudo_element: PseudoElement,
+    ) {
+        use crate::context::{SequentialTask, UpdateAnimationsTasks};
+
+        let old_style = old_styles.pseudos.get(&pseudo_element);
+        let Some(mut style) = new_styles.pseudos.get(&pseudo_element).cloned() else {
+            // The embedder cancels everything when it finds that there is no style.
+            let mut tasks = UpdateAnimationsTasks::empty();
+            if self.has_css_animations(context.shared, Some(pseudo_element.clone())) {
+                tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
+            }
+            if self.has_css_transitions(context.shared, Some(pseudo_element.clone())) {
+                tasks.insert(UpdateAnimationsTasks::CSS_TRANSITIONS);
+            }
+            if !tasks.is_empty() {
+                context
+                    .thread_local
+                    .tasks
+                    .push(SequentialTask::update_animations(
+                        *self,
+                        Some(pseudo_element),
+                        None,
+                        tasks,
+                    ));
+            }
+            return;
+        };
+
+        let cascade = |context: &mut StyleContext<Self>,
+                       style: &Arc<ComputedValues>,
+                       primary: &PrimaryStyle,
+                       rules: StrongRuleNode| {
+            let inputs = CascadeInputs {
+                rules: Some(rules),
+                visited_rules: style.visited_rules().cloned(),
+                flags: style.flags.for_cascade_inputs(),
+                included_cascade_flags: RuleCascadeFlags::empty(),
+            };
+            StyleResolverForElement::new(
+                *self,
+                context,
+                RuleInclusion::All,
+                PseudoElementResolution::IfApplicable,
+            )
+            .cascade_style_and_visited_for_pseudo_with_default_parents(
+                inputs,
+                &pseudo_element,
+                primary,
+            )
+            .0
+        };
+
+        // Pseudo-elements are cascaded without their animation rules, so add them.
+        let declarations = self.animation_declarations_for_pseudo(context.shared, &pseudo_element);
+        if !declarations.is_empty() {
+            let mut rule_node = style.rules().clone();
+            Self::replace_single_rule_node(
+                &context.shared,
+                CascadeLevel::new(CascadeOrigin::Transitions),
+                LayerOrder::root(),
+                declarations.transitions.as_ref().map(|a| a.borrow_arc()),
+                &mut rule_node,
+            );
+            Self::replace_single_rule_node(
+                &context.shared,
+                CascadeLevel::new(CascadeOrigin::Animations),
+                LayerOrder::root(),
+                declarations.animations.as_ref().map(|a| a.borrow_arc()),
+                &mut rule_node,
+            );
+            if rule_node != *style.rules() {
+                style = cascade(context, &style, &new_styles.primary, rule_node);
+            }
+        }
+
+        let mut tasks = UpdateAnimationsTasks::empty();
+        if self.needs_animations_update(
+            context,
+            old_style.map(|s| &**s),
+            &style,
+            Some(pseudo_element.clone()),
+        ) {
+            tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
+        }
+
+        let primary = &new_styles.primary;
+        let before_change_style = self.process_embedder_transitions(
+            context,
+            old_style,
+            &mut style,
+            Some(&pseudo_element),
+            |context, style| {
+                let without_transition_rules =
+                    RuleTree::remove_transition_rule_if_applicable(style.rules());
+                if &without_transition_rules == style.rules() {
+                    return None;
+                }
+                Some(cascade(context, style, primary, without_transition_rules))
+            },
+        );
+        if before_change_style.is_some() {
+            tasks.insert(UpdateAnimationsTasks::CSS_TRANSITIONS);
+        }
+
+        new_styles.pseudos.set(&pseudo_element, style);
+
+        if !tasks.is_empty() {
+            context
+                .thread_local
+                .tasks
+                .push(SequentialTask::update_animations(
+                    *self,
+                    Some(pseudo_element),
+                    before_change_style,
+                    tasks,
+                ));
+        }
     }
 
     #[cfg(feature = "servo")]

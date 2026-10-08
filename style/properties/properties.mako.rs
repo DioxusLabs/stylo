@@ -1838,6 +1838,17 @@ impl ComputedValues {
 
 #[cfg(feature = "servo")]
 impl ComputedValues {
+    /// Returns true if the display property is changed from 'none' to others.
+    pub fn is_display_property_changed_from_none(
+        &self,
+        old_values: Option<<%text>&</%text>ComputedValues>,
+    ) -> bool {
+        old_values.is_some_and(|old| {
+            old.get_box().clone_display() == longhands::display::computed_value::T::None
+                && self.get_box().clone_display() != longhands::display::computed_value::T::None
+        })
+    }
+
     /// Create a new refcounted `ComputedValues`
     pub fn new(
         pseudo: Option<&PseudoElement>,

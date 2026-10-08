@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 
 use crate::applicable_declarations::ApplicableDeclarationBlock;
-#[cfg(feature = "gecko")]
 use crate::context::UpdateAnimationsTasks;
 use crate::context::{SharedStyleContext, TreeCountingCaches};
 use crate::data::{ElementData, ElementDataMut, ElementDataRef};
@@ -771,6 +770,51 @@ pub trait TElement:
         before_change_style: Option<Arc<ComputedValues>>,
         tasks: UpdateAnimationsTasks,
     );
+
+    /// Whether the embedder owns this element's animations and transitions.
+    ///
+    /// When true, they are provided by `animation_rule`, `transition_rule` and
+    /// `animation_declarations_for_pseudo`, and `update_animations` is called after the
+    /// traversal, instead of `SharedStyleContext::animations` being used.
+    #[cfg(feature = "servo")]
+    fn has_embedder_animations(&self) -> bool {
+        false
+    }
+
+    /// Creates a task to update various animation state on a given element or one of its
+    /// pseudo-elements. Only called if `has_embedder_animations` returns true.
+    #[cfg(feature = "servo")]
+    fn update_animations(
+        &self,
+        _pseudo_element: Option<PseudoElement>,
+        _before_change_style: Option<Arc<ComputedValues>>,
+        _tasks: UpdateAnimationsTasks,
+    ) {
+    }
+
+    /// Get the combined animation and transition rules of one of this element's
+    /// pseudo-elements. Only called if `has_embedder_animations` returns true.
+    #[cfg(feature = "servo")]
+    fn animation_declarations_for_pseudo(
+        &self,
+        _context: &SharedStyleContext,
+        _pseudo_element: &PseudoElement,
+    ) -> AnimationDeclarations {
+        Default::default()
+    }
+
+    /// Returns true if one of the transitions needs to be updated on this element or one of
+    /// its pseudo-elements. Only called if `has_embedder_animations` returns true, and
+    /// `might_need_transitions_update` returned true for the same styles.
+    #[cfg(feature = "servo")]
+    fn needs_transitions_update(
+        &self,
+        _pseudo_element: Option<&PseudoElement>,
+        _before_change_style: &ComputedValues,
+        _after_change_style: &ComputedValues,
+    ) -> bool {
+        true
+    }
 
     /// Returns true if the element has relevant animations. Relevant
     /// animations are those animations that are affecting the element's style

@@ -19,6 +19,8 @@ use crate::properties::ComputedValues;
 use crate::properties::PropertyId;
 use crate::rule_cache::RuleCache;
 use crate::rule_tree::{RuleCascadeFlags, StrongRuleNode};
+#[cfg(feature = "servo")]
+use crate::selector_parser::PseudoElement;
 use crate::selector_parser::{SnapshotMap, EAGER_PSEUDO_COUNT};
 use crate::shared_lock::StylesheetGuards;
 use crate::sharing::StyleSharingCache;
@@ -33,7 +35,6 @@ use euclid::Scale;
 use rustc_hash::FxHashMap;
 use selectors::context::SelectorCaches;
 use selectors::OpaqueElement;
-#[cfg(feature = "gecko")]
 use servo_arc::Arc;
 use std::fmt;
 use std::ops;
@@ -435,6 +436,25 @@ bitflags! {
     }
 }
 
+#[cfg(feature = "servo")]
+bitflags! {
+    /// Represents which tasks are performed in a SequentialTask of
+    /// UpdateAnimations which is a result of normal restyle.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct UpdateAnimationsTasks: u8 {
+        /// Update CSS Animations.
+        const CSS_ANIMATIONS = 1 << 0;
+        /// Update CSS Transitions.
+        const CSS_TRANSITIONS = 1 << 1;
+        /// Update effect properties.
+        const EFFECT_PROPERTIES = 1 << 2;
+        /// The set of `!important` rules applying to the element changed.
+        const CASCADE_RESULTS = 1 << 3;
+        /// Display property was changed from none.
+        const DISPLAY_CHANGED_FROM_NONE = 1 << 4;
+    }
+}
+
 /// A task to be run in sequential mode on the parent (non-worker) thread. This
 /// is used by the style system to queue up work which is not safe to do during
 /// the parallel traversal.
@@ -446,10 +466,13 @@ pub enum SequentialTask<E: TElement> {
     /// animations based on the |tasks| field. These include updating CSS
     /// animations/transitions that changed as part of the non-animation style
     /// traversal, and updating the computed effect properties.
-    #[cfg(feature = "gecko")]
     UpdateAnimations {
         /// The target element or pseudo-element.
         el: SendElement<E>,
+        /// The target pseudo-element of `el`, if any. Servo's pseudo-elements
+        /// are not elements, unlike Gecko's.
+        #[cfg(feature = "servo")]
+        pseudo: Option<PseudoElement>,
         /// The before-change style for transitions. We use before-change style
         /// as the initial value of its Keyframe. Required if |tasks| includes
         /// CSSTransitions.
@@ -474,6 +497,15 @@ impl<E: TElement> SequentialTask<E> {
             } => {
                 el.update_animations(before_change_style, tasks);
             },
+            #[cfg(feature = "servo")]
+            UpdateAnimations {
+                el,
+                pseudo,
+                before_change_style,
+                tasks,
+            } => {
+                el.update_animations(pseudo, before_change_style, tasks);
+            },
         }
     }
 
@@ -488,6 +520,24 @@ impl<E: TElement> SequentialTask<E> {
         use self::SequentialTask::*;
         UpdateAnimations {
             el: unsafe { SendElement::new(el) },
+            before_change_style,
+            tasks,
+        }
+    }
+
+    /// Creates a task to update various animation-related state on a given
+    /// element or one of its pseudo-elements.
+    #[cfg(feature = "servo")]
+    pub fn update_animations(
+        el: E,
+        pseudo: Option<PseudoElement>,
+        before_change_style: Option<Arc<ComputedValues>>,
+        tasks: UpdateAnimationsTasks,
+    ) -> Self {
+        use self::SequentialTask::*;
+        UpdateAnimations {
+            el: unsafe { SendElement::new(el) },
+            pseudo,
             before_change_style,
             tasks,
         }

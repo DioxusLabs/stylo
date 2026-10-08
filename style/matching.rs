@@ -550,6 +550,12 @@ trait PrivateMatchMethods: TElement {
         use crate::animation::AnimationSetKey;
         use crate::dom::TDocument;
 
+        // An animation-only traversal only replaces the animation and transition rules of
+        // elements that already have a style: it does not start, update or cancel anything.
+        if context.shared.traversal_flags.for_animation_only() && old_styles.primary.is_some() {
+            return;
+        }
+
         let style_changed = self.process_animations_for_style(
             context,
             &mut old_styles.primary,

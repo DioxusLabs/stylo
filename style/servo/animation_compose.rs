@@ -11,22 +11,28 @@
 //! [stack]: https://drafts.csswg.org/web-animations-1/#effect-stack
 
 use crate::applicable_declarations::CascadePriority;
-use crate::context::TreeCountingCaches;
-use crate::dom::{AttributeTracker, TElement};
+use crate::context::{CascadeInputs, TreeCountingCaches};
+use crate::dom::{AttributeTracker, TDocument, TElement, TNode};
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
+use crate::properties::cascade::FirstLineReparenting;
+use crate::properties::declaration_block::Importance;
 use crate::properties::{
     CSSWideKeyword, ComputedValues, KeyframeCustomPropertiesBuilder, LonghandIdSet,
     OwnedPropertyDeclarationId, PropertyDeclaration, PropertyDeclarationBlock,
     PropertyDeclarationId, PropertyDeclarationIdSet, StyleBuilder,
 };
+use crate::rule_tree::{CascadeLevel, CascadeOrigin, RuleCascadeFlags};
 use crate::selector_parser::PseudoElement;
+use crate::shared_lock::StylesheetGuards;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
+use crate::stylesheets::layer_rule::LayerOrder;
 use crate::stylist::Stylist;
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::easing::TimingFunction;
 use crate::values::computed::Context;
 use crate::values::generics::easing::BeforeFlag;
 use crate::values::specified::animation::AnimationComposition;
+use servo_arc::Arc;
 
 /// <https://drafts.csswg.org/web-animations-2/#iteration-composite-operation>
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -242,6 +248,7 @@ pub fn compute_keyframe_values<E: TElement>(
     pseudo: Option<&PseudoElement>,
     stylist: &Stylist,
     style: &ComputedValues,
+    guards: &StylesheetGuards,
     parent_style: Option<&ComputedValues>,
     declarations: &PropertyDeclarationBlock,
 ) -> Vec<AnimationValue> {
@@ -272,19 +279,66 @@ pub fn compute_keyframe_values<E: TElement>(
         builder.build(&mut context, &mut AttributeTracker::new(&element));
     }
 
-    // The revert keywords roll back to a value that is only known in the cascade. That is
-    // the underlying value unless a lower-priority animation also sets the property, so
-    // these declarations are left out and the keyframe is treated as not having the property.
+    // `revert-layer` and `revert-rule` roll back to the underlying value, so those declarations
+    // are left out and the keyframe is treated as not having the property. `revert` rolls back
+    // to a value that is only known in the cascade.
+    let mut skipped = LonghandIdSet::default();
     let mut reverted = LonghandIdSet::default();
+    let mut reverted_declarations = PropertyDeclarationBlock::new();
     for declaration in declarations.normal_declaration_iter() {
-        let is_revert = matches!(
-            declaration.get_css_wide_keyword(),
-            Some(CSSWideKeyword::Revert | CSSWideKeyword::RevertLayer | CSSWideKeyword::RevertRule)
-        );
-        if let (true, PropertyDeclarationId::Longhand(id)) = (is_revert, declaration.id()) {
-            reverted.insert(id.to_physical(style.writing_mode));
+        let PropertyDeclarationId::Longhand(id) = declaration.id() else {
+            continue;
+        };
+        match declaration.get_css_wide_keyword() {
+            Some(CSSWideKeyword::RevertLayer | CSSWideKeyword::RevertRule) => {
+                skipped.insert(id.to_physical(style.writing_mode));
+            },
+            Some(CSSWideKeyword::Revert) => {
+                skipped.insert(id.to_physical(style.writing_mode));
+                if id.is_animatable() {
+                    reverted.insert(id.to_physical(style.writing_mode));
+                    reverted_declarations.push(
+                        declaration.to_physical(style.writing_mode),
+                        Importance::Normal,
+                    );
+                }
+            },
+            _ => {},
         }
     }
+    let reverted_style = (!reverted.is_empty())
+        .then(|| {
+            let document = element.as_node().owner_doc();
+            let block = Arc::new(document.shared_lock().wrap(reverted_declarations));
+            let rules = stylist.rule_tree().update_rule_at_level(
+                CascadeLevel::new(CascadeOrigin::Animations),
+                LayerOrder::root(),
+                Some(block.borrow_arc()),
+                style.rules.as_ref()?,
+                guards,
+                &mut false,
+            )?;
+            let inputs = CascadeInputs {
+                rules: Some(rules),
+                visited_rules: style.visited_rules().cloned(),
+                flags: style.flags.for_cascade_inputs(),
+                included_cascade_flags: RuleCascadeFlags::empty(),
+            };
+            Some(stylist.cascade_style_and_visited(
+                Some(element),
+                pseudo,
+                &inputs,
+                guards,
+                parent_style,
+                parent_style,
+                FirstLineReparenting::No,
+                &Default::default(),
+                None,
+                &mut Default::default(),
+                &mut TreeCountingCaches::default(),
+            ))
+        })
+        .flatten();
 
     let restriction = pseudo.and_then(|pseudo| pseudo.property_restriction());
     let mut seen = PropertyDeclarationIdSet::default();
@@ -296,7 +350,7 @@ pub fn compute_keyframe_values<E: TElement>(
             continue;
         }
         if let PropertyDeclarationId::Longhand(longhand) = property {
-            if reverted.contains(longhand) {
+            if skipped.contains(longhand) {
                 continue;
             }
         }
@@ -307,6 +361,15 @@ pub fn compute_keyframe_values<E: TElement>(
         }
         seen.insert(property);
         values.push(value);
+    }
+    if let Some(reverted_style) = reverted_style {
+        for longhand in reverted.iter() {
+            let property = PropertyDeclarationId::Longhand(longhand);
+            if restriction.is_some_and(|restriction| !longhand.flags().contains(restriction)) {
+                continue;
+            }
+            values.extend(AnimationValue::from_computed_values(property, &reverted_style));
+        }
     }
     values
 }

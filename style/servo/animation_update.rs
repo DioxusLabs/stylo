@@ -15,7 +15,7 @@ use crate::properties::{ComputedValues, OwnedPropertyDeclarationId, PropertyDecl
 use crate::selector_parser::PseudoElement;
 use crate::servo::animation_compose::{compute_keyframe_values, AnimationPropertySegment};
 use crate::servo::animation_timing::EffectTiming;
-use crate::shared_lock::SharedRwLockReadGuard;
+use crate::shared_lock::StylesheetGuards;
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStepValue};
 use crate::stylist::Stylist;
 use crate::values::computed::easing::TimingFunction;
@@ -139,13 +139,14 @@ pub fn compute_css_keyframes<E: TElement>(
     element: E,
     pseudo: Option<&PseudoElement>,
     stylist: &Stylist,
-    guard: &SharedRwLockReadGuard,
+    guards: &StylesheetGuards,
     style: &ComputedValues,
     parent_style: Option<&ComputedValues>,
     animation: &KeyframesAnimation,
     timing_function: &TimingFunction,
     composition: AnimationComposition,
 ) -> Vec<ComputedKeyframe> {
+    let guard = guards.author;
     animation
         .steps
         .iter()
@@ -157,6 +158,7 @@ pub fn compute_css_keyframes<E: TElement>(
                     pseudo,
                     stylist,
                     style,
+                    guards,
                     parent_style,
                     block.read_with(guard),
                 ),

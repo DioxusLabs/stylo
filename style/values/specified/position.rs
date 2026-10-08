@@ -1536,6 +1536,34 @@ impl Side for VerticalPositionKeyword {
     }
 }
 
+/// The `grid-lanes-direction` property: which axis holds the grid tracks of a grid lanes container.
+///
+/// <https://drafts.csswg.org/css-grid-3/#grid-lanes-direction>
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(u8)]
+pub enum GridLanesDirection {
+    Normal,
+    Row,
+    Column,
+}
+
 /// Controls how the auto-placement algorithm works specifying exactly how auto-placed items
 /// get flowed into the grid: [ row | column ] || dense
 /// https://drafts.csswg.org/css-grid-2/#grid-auto-flow-property

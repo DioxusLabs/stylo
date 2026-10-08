@@ -585,6 +585,7 @@ class Longhand(Property):
                 "ObjectFit",
                 "BoxSizing",
                 "FlexDirection",
+                "GridLanesDirection",
                 "ListStylePosition",
                 "TextWrapStyle",
                 "TextWrapMode",

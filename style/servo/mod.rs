@@ -9,6 +9,7 @@
 pub mod animation;
 pub mod animation_compose;
 pub mod animation_timing;
+pub mod animation_update;
 #[allow(missing_docs)] // TODO.
 pub mod attr;
 mod encoding_support;

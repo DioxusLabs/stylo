@@ -280,8 +280,10 @@ pub fn compute_keyframe_values<E: TElement>(
         if restriction.is_some_and(|restriction| !property.flags().contains(restriction)) {
             continue;
         }
+        // A later declaration wins, for example a physical longhand after the logical one that
+        // maps to it.
         if seen.contains(property) {
-            continue;
+            values.retain(|other: &AnimationValue| other.id() != property);
         }
         seen.insert(property);
         values.push(value);

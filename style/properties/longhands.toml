@@ -1058,14 +1058,15 @@ animation_type = "discrete"
 spec = "https://drafts.csswg.org/css-grid-3/#grid-lanes-direction"
 affects = "layout"
 
-[flow-tolerance]
-type = "length::FlowTolerance"
-initial = "computed::length::FlowTolerance::normal()"
+[fit-tolerance]
+aliases = ["flow-tolerance"]
+type = "length::FitTolerance"
+initial = "computed::length::FitTolerance::normal()"
 struct = "position"
 engine = "servo"
 servo_pref = "layout.css.display-grid-lanes.enabled"
 animation_type = "discrete"
-spec = "https://drafts.csswg.org/css-grid-3/#flow-tolerance"
+spec = "https://drafts.csswg.org/css-grid-3/#fit-tolerance"
 affects = "layout"
 
 [grid-auto-rows]

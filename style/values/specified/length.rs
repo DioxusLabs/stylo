@@ -19,7 +19,7 @@ use crate::values::computed::{self, CSSPixelLength, Context, FontSize};
 use crate::values::generics::NonNegative;
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
-    GenericAnchorSizeFunction, GenericFlowTolerance, GenericLengthOrNumber,
+    GenericAnchorSizeFunction, GenericFitTolerance, GenericLengthOrNumber,
     GenericLengthPercentageOrNormal, GenericMargin, GenericMaxSize, GenericSize,
 };
 use crate::values::specified::NonNegativeNumber;
@@ -1681,8 +1681,8 @@ pub type NonNegativeLengthPercentage = NonNegative<LengthPercentage>;
 pub type NonNegativeLengthPercentageOrNormal =
     GenericLengthPercentageOrNormal<NonNegativeLengthPercentage>;
 
-/// A specified `flow-tolerance` value.
-pub type FlowTolerance = GenericFlowTolerance<NonNegativeLengthPercentage>;
+/// A specified `fit-tolerance` value.
+pub type FitTolerance = GenericFitTolerance<NonNegativeLengthPercentage>;
 
 impl From<NoCalcLength> for NonNegativeLengthPercentage {
     #[inline]

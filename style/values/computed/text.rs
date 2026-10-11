@@ -12,6 +12,7 @@ use crate::typed_om::{KeywordValue, ToTyped, TypedValue};
 use crate::values::animated::text::TextDecorationInset as AnimatedTextDecorationInset;
 use crate::values::animated::{Context as AnimatedContext, ToAnimatedValue};
 use crate::values::computed::length::{CSSPixelLength, LengthPercentage};
+use crate::values::computed::percentage::NonNegativePercentage;
 use crate::values::generics::NumberOrAuto;
 use crate::values::generics::text::{
     GenericHyphenateLimitChars, GenericInitialLetter, GenericTextDecorationInset,
@@ -28,9 +29,9 @@ pub use crate::values::specified::text::{
     HangingPunctuation, HyphenateCharacter, Hyphens, LineBreak, MozControlCharacterVisibility,
     OverflowWrap, RubyAlign, RubyOverhang, RubyPosition, TextAlignLast, TextAutospace, TextBoxEdge,
     TextBoxTrim, TextCombineUpright, TextDecorationLine, TextDecorationSkipInk,
-    TextDecorationStyle, TextEmphasisPosition, TextJustify, TextOverflow, TextRendering,
-    TextSecurity, TextSizeAdjust, TextSpacingTrim, TextTransform, TextUnderlinePosition,
-    TextWrapMode, TextWrapStyle, UnicodeBidi, WhiteSpaceCollapse, WordBreak,
+    TextDecorationStyle, TextEmphasisPosition, TextFitKind, TextFitTarget, TextJustify,
+    TextOverflow, TextRendering, TextSecurity, TextSizeAdjust, TextSpacingTrim, TextTransform,
+    TextUnderlinePosition, TextWrapMode, TextWrapStyle, UnicodeBidi, WhiteSpaceCollapse, WordBreak,
 };
 
 /// A computed value for the `initial-letter` property.
@@ -180,6 +181,30 @@ impl WordSpacing {
     pub fn normal() -> Self {
         LengthPercentage::zero()
     }
+}
+
+/// Computed value of the `text-fit` property.
+///
+/// https://drafts.csswg.org/css-text-5/#text-fit-property
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToTyped)]
+#[typed(todo_derive_fields)]
+pub struct TextFit {
+    /// The scaling direction.
+    pub kind: TextFitKind,
+    /// The lines to scale.
+    #[css(skip_if = "TextFitTarget::is_consistent")]
+    pub target: TextFitTarget,
+    /// The limit on the scale, if given.
+    pub limit: Option<NonNegativePercentage>,
+}
+
+impl TextFit {
+    /// `none`
+    pub const NONE: Self = TextFit {
+        kind: TextFitKind::None,
+        target: TextFitTarget::Consistent,
+        limit: None,
+    };
 }
 
 /// Computed value for the text-emphasis-style property

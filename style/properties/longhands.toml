@@ -2583,6 +2583,14 @@ affects = "layout"
 type = "TextSpacingTrim"
 initial = "computed::TextSpacingTrim::Normal"
 
+[text-fit]
+type = "TextFit"
+initial = "computed::TextFit::NONE"
+struct = "inherited_text"
+animation_type = "discrete"
+spec = "https://drafts.csswg.org/css-text-5/#text-fit-property"
+affects = "layout"
+
 [text-autospace]
 type = "TextAutospace"
 initial = "computed::text::TextAutospace::NO_AUTOSPACE"

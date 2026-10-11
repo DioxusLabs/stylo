@@ -10,13 +10,16 @@ use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use crate::values::computed;
 use crate::values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
+use crate::values::computed::text::TextFit as ComputedTextFit;
 use crate::values::computed::{Context, ToComputedValue};
+use crate::values::generics::NonNegative;
 use crate::values::generics::NumberOrAuto;
 use crate::values::generics::text::{
     GenericHyphenateLimitChars, GenericInitialLetter, GenericTextDecorationInset,
     GenericTextDecorationLength, GenericTextIndent, InitialLetterSink,
 };
 use crate::values::specified::length::{Length, LengthPercentage};
+use crate::values::specified::percentage::{NonNegativePercentage, Percentage};
 use crate::values::specified::{AllowQuirks, Integer, Number};
 use cssparser::Parser;
 use icu_segmenter::GraphemeClusterSegmenter;
@@ -1837,6 +1840,127 @@ pub enum TextSpacingTrim {
     SpaceAll,
     SpaceFirst,
     TrimStart,
+}
+
+/// The scaling direction of the `text-fit` property.
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(u8)]
+pub enum TextFitKind {
+    None,
+    Grow,
+    Shrink,
+}
+
+/// The lines the `text-fit` property scales.
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[repr(u8)]
+pub enum TextFitTarget {
+    Consistent,
+    PerLine,
+    PerLineAll,
+}
+
+impl TextFitTarget {
+    /// Whether the value is `consistent`, the default.
+    #[inline]
+    pub fn is_consistent(&self) -> bool {
+        matches!(*self, TextFitTarget::Consistent)
+    }
+}
+
+/// Specified value of the `text-fit` property:
+/// `[ none | grow | shrink ] [ consistent | per-line | per-line-all ]? <percentage [0,∞]>?`
+///
+/// https://drafts.csswg.org/css-text-5/#text-fit-property
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem, ToTyped)]
+#[typed(todo_derive_fields)]
+pub struct TextFit {
+    /// The scaling direction.
+    pub kind: TextFitKind,
+    /// The lines to scale, if given.
+    pub target: Option<TextFitTarget>,
+    /// The limit on the scale, if given.
+    pub limit: Option<NonNegativePercentage>,
+}
+
+impl Parse for TextFit {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ParseError> {
+        let kind = TextFitKind::parse(input)?;
+        let target = input.try_parse(TextFitTarget::parse).ok();
+        let limit = input
+            .try_parse(|i| NonNegativePercentage::parse(context, i))
+            .ok();
+        Ok(TextFit {
+            kind,
+            target,
+            limit,
+        })
+    }
+}
+
+impl ToComputedValue for TextFit {
+    type ComputedValue = ComputedTextFit;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        ComputedTextFit {
+            kind: self.kind,
+            target: self.target.unwrap_or(TextFitTarget::Consistent),
+            limit: self.limit.as_ref().map(|limit| {
+                let computed = limit.0.to_computed_value(context);
+                NonNegative(computed::Percentage(computed.0.max(0.)))
+            }),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        TextFit {
+            kind: computed.kind,
+            target: Some(computed.target),
+            limit: computed
+                .limit
+                .map(|limit| NonNegative(Percentage::new(limit.0.0))),
+        }
+    }
 }
 
 /// https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty

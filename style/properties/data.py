@@ -1269,6 +1269,8 @@ class PropertyRestrictions:
                 "background-blend-mode",
                 # Not yet in css-text spec, but coming
                 "text-autospace-size",
+                # Chrome applies it on the first line.
+                "ruby-position",
             ]
             + PropertyRestrictions.spec(data, "css-fonts")
             + PropertyRestrictions.spec(data, "css-backgrounds")

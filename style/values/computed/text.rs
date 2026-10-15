@@ -29,9 +29,10 @@ pub use crate::values::specified::text::{
     HangingPunctuation, HyphenateCharacter, Hyphens, LineBreak, MozControlCharacterVisibility,
     OverflowWrap, RubyAlign, RubyOverhang, RubyPosition, TextAlignLast, TextAutospace, TextBoxEdge,
     TextBoxTrim, TextCombineUpright, TextDecorationLine, TextDecorationSkipInk,
-    TextDecorationStyle, TextEmphasisPosition, TextFitKind, TextFitTarget, TextJustify,
-    TextOverflow, TextRendering, TextSecurity, TextSizeAdjust, TextSpacingTrim, TextTransform,
-    TextUnderlinePosition, TextWrapMode, TextWrapStyle, UnicodeBidi, WhiteSpaceCollapse, WordBreak,
+    TextDecorationSkipSpaces, TextDecorationStyle, TextEmphasisPosition, TextFitKind,
+    TextFitTarget, TextJustify, TextOverflow, TextRendering, TextSecurity, TextSizeAdjust,
+    TextSpacingTrim, TextTransform, TextUnderlinePosition, TextWrapMode, TextWrapStyle,
+    UnicodeBidi, WhiteSpaceCollapse, WordBreak,
 };
 
 /// A computed value for the `initial-letter` property.

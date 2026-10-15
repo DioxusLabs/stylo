@@ -133,7 +133,8 @@ pub use self::text::{OverflowWrap, RubyPosition, TextOverflow, WordBreak, WordSp
 pub use self::text::{TextAlign, TextAlignLast, TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextBoxEdge, TextBoxTrim};
 pub use self::text::{
-    TextDecorationInset, TextDecorationLength, TextDecorationSkipInk, TextJustify,
+    TextDecorationInset, TextDecorationLength, TextDecorationSkipInk, TextDecorationSkipSpaces,
+    TextJustify,
 };
 pub use self::text::{TextFit, TextFitKind, TextFitTarget};
 pub use self::time::Time;

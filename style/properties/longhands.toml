@@ -2633,6 +2633,14 @@ animation_type = "discrete"
 spec = "https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property"
 affects = "overflow"
 
+[text-decoration-skip-spaces]
+type = "TextDecorationSkipSpaces"
+initial = "computed::TextDecorationSkipSpaces::START_END"
+struct = "inherited_text"
+animation_type = "discrete"
+spec = "https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property"
+affects = "layout"
+
 [text-emphasis-color]
 type = "Color"
 initial = "computed_value::T::currentcolor()"

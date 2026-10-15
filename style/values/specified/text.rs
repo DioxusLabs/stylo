@@ -1064,6 +1064,44 @@ pub enum TextDecorationSkipInk {
     All,
 }
 
+/// Values for the `text-decoration-skip-spaces` property:
+/// `none | all | [ start || end ]`.
+///
+/// https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+    ToTyped,
+)]
+#[css(bitflags(single = "none,all", mixed = "start,end", overlapping_bits))]
+#[repr(C)]
+pub struct TextDecorationSkipSpaces(u8);
+bitflags! {
+    impl TextDecorationSkipSpaces: u8 {
+        /// `none`: decorations run under every space.
+        const NONE = 0;
+        /// `start`: decorations skip the spaces at a line's start.
+        const START = 1 << 0;
+        /// `end`: decorations skip the spaces at a line's end.
+        const END = 1 << 1;
+        /// `all`: decorations skip every space, and the spacing beside it.
+        const ALL = 1 << 2 | Self::START.bits() | Self::END.bits();
+        /// `start end`, the initial value.
+        const START_END = Self::START.bits() | Self::END.bits();
+    }
+}
+
 /// Implements type for `text-decoration-thickness` property
 pub type TextDecorationLength = GenericTextDecorationLength<LengthPercentage>;
 

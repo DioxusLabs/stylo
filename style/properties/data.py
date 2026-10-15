@@ -692,6 +692,7 @@ class Longhand(Property):
                 "TextBoxEdge",
                 "TextBoxTrim",
                 "TextDecorationLine",
+                "TextDecorationSkipSpaces",
                 "TextEmphasisPosition",
                 "TextJustify",
                 "TextTransform",

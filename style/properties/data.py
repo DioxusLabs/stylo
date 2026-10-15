@@ -1265,6 +1265,8 @@ class PropertyRestrictions:
                 "line-height",
                 # Kinda like css-backgrounds?
                 "background-blend-mode",
+                # Chrome applies it on the first line.
+                "ruby-position",
             ]
             + PropertyRestrictions.spec(data, "css-fonts")
             + PropertyRestrictions.spec(data, "css-backgrounds")

@@ -764,6 +764,12 @@ pub trait TElement:
     /// Whereas Servo doesn't have such flag.
     fn may_have_animations(&self) -> bool;
 
+    /// Called when an animation or transition set is stored for this element or one of its
+    /// pseudo-elements, so that `may_have_animations` returns true for it from then on.
+    /// Gecko keeps this state itself, so only Servo-mode embedders implement it.
+    #[cfg(feature = "servo")]
+    fn set_may_have_animations(&self);
+
     /// Creates a task to update various animation state on a given (pseudo-)element.
     #[cfg(feature = "gecko")]
     fn update_animations(

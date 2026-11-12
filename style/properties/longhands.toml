@@ -542,6 +542,7 @@ affects = "paint"
 servo_restyle_damage = "rebuild_stacking_context"
 
 [clip-rule]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "FillRule"
 initial = "Default::default()"
 struct = "inherited_svg"
@@ -840,6 +841,7 @@ servo_restyle_damage = "rebuild_box"
 affects = "layout"
 
 [flood-color]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "Color"
 initial = "computed::Color::BLACK"
 struct = "svg"
@@ -847,6 +849,7 @@ spec = "https://drafts.fxtf.org/filter-effects-1/#FloodColorProperty"
 affects = "paint"
 
 [flood-opacity]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "Opacity"
 initial = "1.0"
 struct = "svg"
@@ -1249,6 +1252,7 @@ servo_restyle_damage = "rebuild_box"
 affects = "layout"
 
 [lighting-color]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "Color"
 initial = "computed::Color::WHITE"
 struct = "svg"
@@ -1293,6 +1297,7 @@ servo_restyle_damage = "rebuild_box"
 affects = "layout"
 
 [marker-end]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "url::UrlOrNone"
 initial = "computed::url::UrlOrNone::none()"
 struct = "inherited_svg"
@@ -1301,6 +1306,7 @@ spec = "https://svgwg.org/svg2-draft/painting.html#VertexMarkerProperties"
 affects = "layout"
 
 [marker-mid]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "url::UrlOrNone"
 initial = "computed::url::UrlOrNone::none()"
 struct = "inherited_svg"
@@ -1309,6 +1315,7 @@ spec = "https://svgwg.org/svg2-draft/painting.html#VertexMarkerProperties"
 affects = "layout"
 
 [marker-start]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "url::UrlOrNone"
 initial = "computed::url::UrlOrNone::none()"
 struct = "inherited_svg"
@@ -1656,6 +1663,7 @@ rule_types_allowed = ["page"]
 affects = "layout"
 
 [paint-order]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "SVGPaintOrder"
 initial = "computed::SVGPaintOrder::normal()"
 struct = "inherited_svg"
@@ -1664,6 +1672,7 @@ spec = "https://svgwg.org/svg2-draft/painting.html#PaintOrder"
 affects = "paint"
 
 [-moz-context-properties]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "MozContextProperties"
 initial = "computed::MozContextProperties::default()"
 struct = "inherited_svg"
@@ -1963,6 +1972,7 @@ rule_types_allowed = ["page"]
 affects = "layout"
 
 [stop-color]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "Color"
 initial = "computed::Color::BLACK"
 struct = "svg"
@@ -1970,6 +1980,7 @@ spec = "https://svgwg.org/svg2-draft/pservers.html#StopColorProperties"
 affects = "paint"
 
 [stop-opacity]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "Opacity"
 initial = "1.0"
 struct = "svg"
@@ -2103,6 +2114,7 @@ servo_restyle_damage = "recalculate_overflow"
 affects = "overflow"
 
 [transform-box]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "TransformBox"
 initial = "computed::TransformBox::ViewBox"
 struct = "box"
@@ -2335,6 +2347,7 @@ spec = "https://drafts.csswg.org/css-view-transitions-1/#view-transition-name-pr
 affects = ""
 
 [vector-effect]
+servo_pref = "layout.css.svg-properties.enabled"
 type = "VectorEffect"
 initial = "computed::VectorEffect::none()"
 struct = "svg"
@@ -3898,6 +3911,7 @@ type = "ImageOrientation"
 initial = "computed::ImageOrientation::FromImage"
 
 [text-anchor]
+servo_pref = "layout.css.svg-properties.enabled"
 struct = "inherited_svg"
 spec = "https://svgwg.org/svg2-draft/text.html#TextAnchorProperty"
 animation_type = "discrete"
@@ -3906,6 +3920,7 @@ type = "TextAnchor"
 initial = "computed::TextAnchor::Start"
 
 [color-interpolation]
+servo_pref = "layout.css.svg-properties.enabled"
 struct = "inherited_svg"
 spec = "https://svgwg.org/svg2-draft/painting.html#ColorInterpolationProperty"
 animation_type = "discrete"
@@ -3914,6 +3929,7 @@ type = "ColorInterpolation"
 initial = "computed::ColorInterpolation::Srgb"
 
 [color-interpolation-filters]
+servo_pref = "layout.css.svg-properties.enabled"
 struct = "inherited_svg"
 spec = "https://svgwg.org/svg2-draft/painting.html#ColorInterpolationFiltersProperty"
 animation_type = "discrete"
@@ -3922,6 +3938,7 @@ type = "ColorInterpolation"
 initial = "computed::ColorInterpolation::Linearrgb"
 
 [shape-rendering]
+servo_pref = "layout.css.svg-properties.enabled"
 struct = "inherited_svg"
 spec = "https://svgwg.org/svg2-draft/painting.html#ShapeRenderingProperty"
 animation_type = "discrete"
